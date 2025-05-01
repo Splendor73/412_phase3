@@ -5,9 +5,9 @@ from psycopg2 import Error
 DB_CONFIG = {
     'dbname': 'phase3_db',
     'user': 'yashupatel',
-    'password': '1973',
+    'password': '19**',
     'host': 'localhost',
-    'port': '5432'
+    'port': '5417'
 }
 
 def get_db_connection():
