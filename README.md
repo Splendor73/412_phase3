@@ -1,6 +1,42 @@
 # Course Recommendation Platform
 
-A platform for students to discover and bookmark online courses based on their interests and academic major. Built with Flask (backend) and Next.js (frontend).
+A platform for ASU students to discover and bookmark online courses based on their interests, academic major, and desired skills. Built with Flask (backend) and Next.js (frontend).
+
+## Features
+
+- 👤 **User Authentication**
+  - Sign up with major and skills selection
+  - Secure login with password hashing
+  - JWT-based session management
+
+- 📚 **Course Discovery**
+  - Browse courses from multiple platforms
+  - Advanced filtering (major, difficulty, platform, price)
+  - Course details with prerequisites and skills
+
+- 🔖 **Bookmarking**
+  - Save courses for later
+  - Manage bookmarked courses
+  - Quick access to saved content
+
+- 🎯 **Skills Tracking**
+  - Select skills to learn
+  - Course recommendations based on skills
+  - Track learning progress
+
+## Tech Stack
+
+- **Frontend:**
+  - Next.js 13 with App Router
+  - TypeScript
+  - Tailwind CSS
+  - shadcn/ui components
+
+- **Backend:**
+  - Flask
+  - PostgreSQL
+  - JWT Authentication
+  - psycopg2 for database access
 
 ## Project Structure
 
@@ -18,67 +54,70 @@ A platform for students to discover and bookmark online courses based on their i
     │   │   ├── auth/      # Authentication pages
     │   │   └── dashboard/ # User dashboard
     │   └── components/    # Reusable UI components
-    ├── public/            # Static files
     └── package.json       # Node.js dependencies
 ```
 
-## Backend Setup
+## Database Schema
+
+- **Users & Authentication**
+  - `user`: Base user information
+  - `student`: Student-specific profile data
+  - `asu_admin`: Admin user data
+
+- **Course Management**
+  - `course`: Course details
+  - `platform`: Learning platforms
+  - `course_prerequisite`: Prerequisites mapping
+
+- **Skills & Bookmarks**
+  - `skill`: Available skills
+  - `user_skills`: User-skill associations
+  - `course_skills`: Course-skill mapping
+  - `bookmark`: User course bookmarks
+
+## Setup Instructions
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- PostgreSQL database
-- pip (Python package manager)
+- Python 3.8+
+- Node.js 16+
+- PostgreSQL 12+
+- npm or yarn
 
-### Database Setup
+### Backend Setup
 
-1. Create a PostgreSQL database: Follow (Instruction.sql)
-   ```sql
-   CREATE DATABASE phase3_db;
-   ```
-
-2. Update database configuration in `backend/db_config.py`:
-   ```python
-   DB_CONFIG = {
-       'dbname': 'phase3_db',
-       'user': 'your_username',  # Update with your database username
-       'password': 'your_password', # Update with your database password
-       'host': 'localhost',
-       'port': '5432'
-   }
-   ```
-
-3. Run the schema creation script or use the Flask API to initialize tables:
-   ```bash
-   # From database console
-   psql -d phase3_db -f path/to/database_schema.sql
-   
-   # Or simply start the Flask app which will create tables
-   python application.py
-   ```
-
-### Running the Backend
-
-1. Create a virtual environment (recommended):
+1. Create and activate virtual environment:
    ```bash
    cd backend
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-2. Install requirements:
+2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Run the Flask application:
+3. Configure database:
+   - Create PostgreSQL database
+   - Update `db_config.py` with your credentials
+   ```python
+   DB_CONFIG = {
+       'dbname': 'phase3_db',
+       'user': 'your_username',
+       'password': 'your_password',
+       'host': 'localhost',
+       'port': '5432'
+   }
+   ```
+
+4. Run the server:
    ```bash
    python application.py
    ```
+   Server runs on http://localhost:5050
 
-The backend will run on http://localhost:5050 by default.
-
-## Frontend Setup
+### Frontend Setup
 
 1. Install dependencies:
    ```bash
@@ -86,40 +125,47 @@ The backend will run on http://localhost:5050 by default.
    npm install
    ```
 
-2. Run the development server:
+2. Run development server:
    ```bash
    npm run dev
    ```
-
-The frontend will run on http://localhost:3000.
+   Frontend runs on http://localhost:3000
 
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/register`: Register a new user
-- `POST /api/auth/login`: Authenticate a user
+- `POST /api/auth/register`: Register new user
+- `POST /api/auth/login`: User login
 
 ### Courses
-- `GET /api/courses`: Get all courses
-- `GET /api/courses/<course_id>`: Get specific course details
+- `GET /api/courses`: List courses with filters
+- `GET /api/courses/<id>`: Get course details
+- `GET /api/platforms`: List platforms
+- `GET /api/majors`: List available majors
+- `GET /api/skills`: List available skills
 
-### Database Schema
-
-The application uses the following tables:
-
-- `user`: User information (students and admins)
-- `student`: Student-specific profile data
-- `asu_admin`: Admin-specific profile data
-- `platform`: Course platforms (Coursera, Udemy, etc.)
-- `course`: Course details including major categorization
-- `course_prerequisite`: Course prerequisites relationships
-- `bookmark`: User course bookmarks
-- `skill`: Available skills in the system
-- `user_skills`: Skills associated with users
-- `course_skills`: Skills taught in courses
+### Bookmarks
+- `GET /api/bookmarks`: Get user's bookmarks
+- `POST /api/bookmarks`: Add bookmark
+- `DELETE /api/bookmarks`: Remove bookmark
 
 ## Contributing
 
-1. Create a feature branch from main
-2. Make your changes
-3. Submit a pull request 
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
+
+## Pending Features
+
+- [ ] Skill-based course recommendations
+- [ ] Admin dashboard and analytics
+- [ ] Learning progress tracking
+- [ ] Test coverage
+- [ ] API documentation
+- [ ] Deployment guide
+
+## License
+
+This project is part of CSE 412 at Arizona State University. 

@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge"; // For displaying difficulty/major
 import { Search, Filter, DollarSign, Bookmark } from "lucide-react"; // Icons
 import Link from "next/link"; // Add Link import
-import { getBookmarks, addBookmark, removeBookmark, isBookmarked } from "@/lib/bookmarks";
+import { getCourses, getPlatforms, getMajors, getSkills, addBookmark, removeBookmark, getUserBookmarks } from "@/lib/api"; // Import the API functions
 
 // --- Mock Data --- 
 
@@ -98,40 +98,133 @@ export const mockCourses = [
   // Add more mock courses as needed
 ];
 
+// Add type definition for Course
+interface Course {
+  course_id: number;
+  title: string;
+  description: string;
+  price: number | null;
+  duration: string;
+  difficulty: string;
+  platform_id: number;
+  major: string;
+  platform_name: string;
+}
+
+// Add types for API responses
+interface Platform {
+  platform_id: number;
+  name: string;
+  website: string;
+}
+
+interface Skill {
+  skill_id: number;
+  name: string;
+}
+
+interface FilterParams {
+  difficulty?: string;
+  major?: string;
+  platform_id?: number;
+  min_price?: number;
+  max_price?: number;
+  skill_id?: number;
+}
+
 // --- Component --- 
 
 export default function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState<string>("User");
   const [searchTerm, setSearchTerm] = useState("");
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [platforms, setPlatforms] = useState<Platform[]>([]);
+  const [majors, setMajors] = useState<string[]>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Filter States
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all"); // Default to all
-  const [selectedMajor, setSelectedMajor] = useState<string>("all"); // Default to all
-  const [selectedPlatform, setSelectedPlatform] = useState<string>("all"); // Default to all
-  // Add states for price filter
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
+  const [selectedMajor, setSelectedMajor] = useState<string>("all");
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
+  const [selectedSkill, setSelectedSkill] = useState<string>("all");
   const [minPrice, setMinPrice] = useState<string>("");
   const [maxPrice, setMaxPrice] = useState<string>("");
-  // Add state for skill filters later
-
-  // Bookmark State
   const [bookmarks, setBookmarksState] = useState<number[]>([]);
 
   useEffect(() => {
     // Fetch user name and initial bookmarks
     const storedName = localStorage.getItem("userFirstName");
+    const userId = localStorage.getItem("userId");
+    
     if (storedName) {
       setUserName(storedName);
     } else {
-      // Handle case where name isn't found (e.g., direct navigation without login)
-      // Maybe redirect back to login or show a default state
       console.warn("User name not found in localStorage.");
-      // Optional: redirect back
-      // router.push("/auth/sign-in"); 
     }
-    // Load bookmarks on mount
-    setBookmarksState(getBookmarks());
+    
+    // Load initial data
+    const fetchInitialData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch all required data in parallel
+        const [coursesData, platformsData, majorsData, skillsData] = await Promise.all([
+          getCourses(),
+          getPlatforms(),
+          getMajors(),
+          getSkills()
+        ]);
+
+        setCourses(coursesData);
+        setPlatforms(platformsData);
+        setMajors(majorsData);
+        setSkills(skillsData);
+        
+        // Fetch bookmarks if user is logged in
+        if (userId) {
+          const bookmarkedCourses = await getUserBookmarks(parseInt(userId));
+          setBookmarksState(bookmarkedCourses.map((course: Course) => course.course_id));
+        }
+      } catch (err) {
+        console.error("Error fetching initial data:", err);
+        setError("Failed to load data. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInitialData();
   }, []);
+
+  // Update courses when filters change
+  useEffect(() => {
+    const fetchFilteredCourses = async () => {
+      try {
+        setLoading(true);
+        const filters: FilterParams = {};
+        
+        if (selectedDifficulty !== 'all') filters.difficulty = selectedDifficulty;
+        if (selectedMajor !== 'all') filters.major = selectedMajor;
+        if (selectedPlatform !== 'all') filters.platform_id = parseInt(selectedPlatform);
+        if (selectedSkill !== 'all') filters.skill_id = parseInt(selectedSkill);
+        if (minPrice) filters.min_price = parseFloat(minPrice);
+        if (maxPrice) filters.max_price = parseFloat(maxPrice);
+        
+        const filteredCourses = await getCourses(filters);
+        setCourses(filteredCourses);
+      } catch (err) {
+        console.error("Error fetching filtered courses:", err);
+        setError("Failed to apply filters. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFilteredCourses();
+  }, [selectedDifficulty, selectedMajor, selectedPlatform, selectedSkill, minPrice, maxPrice]);
 
   const handleSignOut = () => {
     console.log("Signing out...");
@@ -143,35 +236,39 @@ export default function DashboardPage() {
     router.push("/auth/sign-in");
   };
 
-  // Client-side filtering logic
-  const filteredCourses = mockCourses.filter(course => {
-    const titleMatch = course.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const difficultyMatch = selectedDifficulty === 'all' || course.difficulty === selectedDifficulty;
-    const majorMatch = selectedMajor === 'all' || course.major === selectedMajor;
-    const platformMatch = selectedPlatform === 'all' || course.platform_id?.toString() === selectedPlatform;
-    
-    // Price filtering logic
-    const minPriceNum = parseFloat(minPrice);
-    const maxPriceNum = parseFloat(maxPrice);
-    const coursePrice = course.price ?? 0; // Treat null/undefined price as 0 for comparison
-
-    const minPriceMatch = isNaN(minPriceNum) || coursePrice >= minPriceNum;
-    const maxPriceMatch = isNaN(maxPriceNum) || coursePrice <= maxPriceNum;
-
-    // Add skill match later
-
-    return titleMatch && difficultyMatch && majorMatch && platformMatch && minPriceMatch && maxPriceMatch;
-  });
-
   // Bookmark Toggle Handler
-  const toggleBookmark = (courseId: number) => {
-      if (isBookmarked(courseId)) {
-          removeBookmark(courseId);
-      } else {
-          addBookmark(courseId);
+  const toggleBookmark = async (courseId: number) => {
+    try {
+      const userId = localStorage.getItem("userId");
+      console.log("Attempting to toggle bookmark:", { userId, courseId });
+      
+      if (!userId) {
+        console.error("User not logged in");
+        return;
       }
+
+      const isCurrentlyBookmarked = bookmarks.includes(courseId);
+      console.log("Is currently bookmarked:", isCurrentlyBookmarked);
+      
+      if (isCurrentlyBookmarked) {
+        console.log("Removing bookmark...");
+        await removeBookmark(parseInt(userId), courseId);
+      } else {
+        console.log("Adding bookmark...");
+        await addBookmark(parseInt(userId), courseId);
+      }
+      
       // Update local state to re-render UI
-      setBookmarksState(getBookmarks());
+      setBookmarksState(prev => {
+        const newState = isCurrentlyBookmarked 
+          ? prev.filter(id => id !== courseId)
+          : [...prev, courseId];
+        console.log("New bookmarks state:", newState);
+        return newState;
+      });
+    } catch (error) {
+      console.error("Error toggling bookmark:", error);
+    }
   };
 
   return (
@@ -241,12 +338,29 @@ export default function DashboardPage() {
               <SelectContent>
                 <SelectItem value="all">All Platforms</SelectItem>
                 {platforms.map(platform => (
-                  <SelectItem key={platform.id} value={platform.id.toString()}>{platform.name}</SelectItem>
+                  <SelectItem key={platform.platform_id} value={platform.platform_id.toString()}>
+                    {platform.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            {/* Price Filters */}
+            {/* Skills Filter */}
+            <Select value={selectedSkill} onValueChange={setSelectedSkill}>
+              <SelectTrigger className="w-auto text-sm h-9">
+                <SelectValue placeholder="Skills" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Skills</SelectItem>
+                {skills.map(skill => (
+                  <SelectItem key={skill.skill_id} value={skill.skill_id.toString()}>
+                    {skill.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Price Filter */}
              <div className="flex items-center gap-2 border rounded-md px-2 py-1 h-9">
                  <DollarSign className="h-4 w-4 text-muted-foreground" />
                  <Input 
@@ -267,68 +381,88 @@ export default function DashboardPage() {
                     min="0"
                  />
              </div>
-
-            {/* Placeholder Filters (Skills) */}
-            <Button variant="outline" size="sm" className="h-9 text-sm" disabled>Skills</Button>
         </div>
       </div>
 
       {/* Course Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-         {filteredCourses.length > 0 ? (
-            filteredCourses.map((course) => {
-              const bookmarked = isBookmarked(course.course_id);
-              return (
-                <Card key={course.course_id} className="flex flex-col relative">
-                    {/* Bookmark Toggle Button */} 
-                    <Button 
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-primary z-10"
-                        onClick={() => toggleBookmark(course.course_id)}
-                        aria-label={bookmarked ? "Remove bookmark" : "Add bookmark"}
-                    >
-                        <Bookmark className={`h-5 w-5 ${bookmarked ? 'fill-primary text-primary' : ''}`} />
-                    </Button>
-                    
-                    <CardHeader className="pt-8">
-                        <CardTitle className="text-lg">{course.title}</CardTitle>
-                        <CardDescription className="text-sm pt-1 h-16 overflow-hidden text-ellipsis"> {course.description || "No description available."}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-grow space-y-2">
-                        {/* <p className="text-sm text-muted-foreground">Duration: {course.duration}</p> */}
-                        <div className="flex flex-wrap gap-2">
-                           {course.difficulty && (
-                                <Badge 
-                                    variant="secondary"
-                                    className={`
-                                        ${course.difficulty === 'Beginner' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-300 dark:border-green-700' : ''}
-                                        ${course.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700' : ''}
-                                        ${course.difficulty === 'Advanced' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-300 dark:border-red-700' : ''}
-                                    `}
-                                >
-                                    {course.difficulty}
-                                </Badge>
-                            )}
-                           {course.major && <Badge variant="outline">{course.major}</Badge>}
-                           {course.platform_id && <Badge variant="outline">{platforms.find(p=>p.id === course.platform_id)?.name}</Badge>}
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-between items-center pt-4">
-                        <span className="text-lg font-semibold">
-                           {course.price ? `$${course.price.toFixed(2)}` : "Free"}
-                        </span>
-                        {/* Wrap Button in Link */}
-                        <Link href={`/course/${course.course_id}`}>
-                           <Button size="sm">View</Button> 
-                        </Link>
-                    </CardFooter>
-                </Card>
-              );
-            })
-         ) : (
-            <p className="col-span-full text-center text-muted-foreground">No courses found matching your criteria.</p>
-         )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+        {loading ? (
+          // Loading state
+          Array.from({ length: 6 }).map((_, i) => (
+            <Card key={`skeleton-${i}`} className="animate-pulse">
+              <CardHeader className="h-32 bg-gray-200 dark:bg-gray-800 rounded-t-lg"></CardHeader>
+              <CardContent className="py-4">
+                <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4 mb-4"></div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-full mb-2"></div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-5/6"></div>
+              </CardContent>
+            </Card>
+          ))
+        ) : error ? (
+          // Error state
+          <div className="col-span-full text-center py-12">
+            <p className="text-red-500 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>Retry</Button>
+          </div>
+        ) : courses.length === 0 ? (
+          // No results state
+          <div className="col-span-full text-center py-12">
+            <p className="text-gray-500 mb-2">No courses found matching your criteria.</p>
+            <p className="text-gray-400">Try adjusting your filters.</p>
+          </div>
+        ) : (
+          // Display actual courses
+          courses.map((course) => {
+            const bookmarked = bookmarks.includes(course.course_id);
+            return (
+              <Card key={course.course_id} className="flex flex-col relative">
+                  {/* Bookmark Toggle Button */} 
+                  <Button 
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-primary z-10"
+                      onClick={() => toggleBookmark(course.course_id)}
+                      aria-label={bookmarked ? "Remove bookmark" : "Add bookmark"}
+                  >
+                      <Bookmark className={`h-5 w-5 ${bookmarked ? 'fill-primary text-primary' : ''}`} />
+                  </Button>
+                  
+                  <CardHeader className="pt-8">
+                      <CardTitle className="text-lg">{course.title}</CardTitle>
+                      <CardDescription className="text-sm pt-1 h-16 overflow-hidden text-ellipsis"> {course.description || "No description available."}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow space-y-2">
+                      {/* <p className="text-sm text-muted-foreground">Duration: {course.duration}</p> */}
+                      <div className="flex flex-wrap gap-2">
+                         {course.difficulty && (
+                              <Badge 
+                                  variant="secondary"
+                                  className={`
+                                      ${course.difficulty === 'Beginner' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-300 dark:border-green-700' : ''}
+                                      ${course.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700' : ''}
+                                      ${course.difficulty === 'Advanced' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-300 dark:border-red-700' : ''}
+                                  `}
+                              >
+                                  {course.difficulty}
+                              </Badge>
+                          )}
+                         {course.major && <Badge variant="outline">{course.major}</Badge>}
+                         {course.platform_id && <Badge variant="outline">{platforms.find(p=>p.platform_id === course.platform_id)?.name}</Badge>}
+                      </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-between items-center pt-4">
+                      <span className="text-lg font-semibold">
+                         {course.price ? `$${course.price.toFixed(2)}` : "Free"}
+                      </span>
+                      {/* Wrap Button in Link */}
+                      <Link href={`/course/${course.course_id}`}>
+                         <Button size="sm">View</Button> 
+                      </Link>
+                  </CardFooter>
+              </Card>
+            );
+          })
+        )}
       </div>
     </div>
   );
