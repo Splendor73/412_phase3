@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation"; // Import useRouter
-
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -18,13 +17,15 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link"; // Import Link
 import { API_BASE_URL } from "@/lib/api";
+import { withAuth } from "@/components/auth/auth-provider";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
-export default function SignInPage() {
+function SignInPage() {
   const router = useRouter(); // Initialize router
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -60,6 +61,9 @@ export default function SignInPage() {
         form.setError("root", { 
           message: data.message || "Login failed. Please check your credentials."
         });
+        toast.error("Login failed", {
+          description: data.message || "Please check your credentials and try again"
+        });
         return;
       }
       
@@ -76,13 +80,28 @@ export default function SignInPage() {
       }
       
       console.log("Login successful:", user);
+      toast.success("Login successful", {
+        description: `Welcome back, ${user.firstName}!`
+      });
       
-      // Navigate to the dashboard on success
-      router.push("/dashboard");
+      // Check if there's a redirect destination stored in sessionStorage
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectPath) {
+        // Clear it from storage
+        sessionStorage.removeItem('redirectAfterLogin');
+        // Navigate to that path
+        router.push(redirectPath);
+      } else {
+        // Navigate to the dashboard on success
+        router.push("/dashboard");
+      }
     } catch (error) {
       console.error("Error during login:", error);
       form.setError("root", { 
         message: "An unexpected error occurred. Please try again."
+      });
+      toast.error("Sign in error", {
+        description: "An unexpected error occurred. Please try again."
       });
     }
   }
@@ -125,14 +144,16 @@ export default function SignInPage() {
               <Button type="submit" className="w-full">Sign In</Button>
             </form>
           </Form>
-           <p className="mt-4 text-center text-sm text-muted-foreground">
-             Don't have an account?{' '}
-             <Link href="/auth/sign-up" className="underline">
-               Sign Up
-             </Link>
-           </p>
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            Don't have an account?{' '}
+            <Link href="/auth/sign-up" className="underline">
+              Sign Up
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </div>
   );
-} 
+}
+
+export default withAuth(SignInPage, { redirectIfAuthenticated: true }); 

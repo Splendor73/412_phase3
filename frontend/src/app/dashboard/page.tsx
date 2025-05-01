@@ -49,10 +49,11 @@ import {
   skillLevels,
   Institution,
 } from "@/lib/api"; // Import the API functions
+import { withAuth } from "@/components/auth/auth-provider";
 
 // --- Component ---
 
-export default function DashboardPage() {
+function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState<string>("User");
   const [searchTerm, setSearchTerm] = useState("");
@@ -267,10 +268,15 @@ export default function DashboardPage() {
   const handleSignOut = () => {
     console.log("Signing out...");
     if (typeof window !== "undefined") {
-      localStorage.removeItem("userFirstName"); // Clear stored name
+      // Clear all authentication-related data
+      localStorage.removeItem("userFirstName");
+      localStorage.removeItem("userLastName");
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userType");
+      localStorage.removeItem("userMajor");
+      localStorage.removeItem("userLevel");
     }
-    // Optionally clear bookmarks on sign out?
-    // localStorage.removeItem("bookmarkedCourses");
     router.push("/auth/sign-in");
   };
 
@@ -638,3 +644,6 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+// Export the protected component
+export default withAuth(DashboardPage);

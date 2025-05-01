@@ -12,8 +12,9 @@ import { toast } from 'sonner'; // Use sonner for toasts
 import { Toaster } from 'sonner';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { withAuth } from '@/components/auth/auth-provider';
 
-export default function ProfilePage() {
+function ProfilePage() {
     const router = useRouter();
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
@@ -27,9 +28,9 @@ export default function ProfilePage() {
         const fetchProfile = async () => {
             const userId = localStorage.getItem('userId');
             if (!userId) {
-                setError('User not logged in.');
+                // This should be handled by the withAuth HOC, but we'll keep as a fallback
+                setError('User not logged in');
                 setLoading(false);
-                router.push('/auth/sign-in'); // Redirect if not logged in
                 return;
             }
 
@@ -269,4 +270,7 @@ export default function ProfilePage() {
             </Card>
         </div>
     );
-} 
+}
+
+// Export the component with auth protection
+export default withAuth(ProfilePage); 

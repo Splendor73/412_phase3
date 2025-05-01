@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Bookmark, ArrowLeft } from "lucide-react";
+import { Bookmark, ArrowLeft, Star, Users, Building, Globe } from "lucide-react";
 import { Course, getUserBookmarks, removeBookmark } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,43 +83,128 @@ export default function BookmarksPage() {
 
       {/* Bookmarked Courses Grid */}
       {bookmarkedCourses.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {bookmarkedCourses.map((course) => (
-            <Card key={course.course_id} className="flex flex-col relative">
-              {/* Remove Bookmark Button */}
-              <Button 
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive z-10"
-                onClick={() => handleRemoveBookmark(course.course_id)}
-                aria-label="Remove bookmark"
-              >
-                <Bookmark className="h-5 w-5 fill-destructive text-destructive" />
-              </Button>
-
-              <CardHeader className="pt-8">
-                <CardTitle className="text-lg">{course.title}</CardTitle>
-                <CardDescription className="text-sm pt-1 h-16 overflow-hidden text-ellipsis">
+            <Card
+              key={course.course_id}
+              className="flex flex-col relative overflow-hidden hover:shadow-lg transition-shadow duration-200 gap-2"
+            >
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg mb-1">{course.title}</CardTitle>
+                <CardDescription className="text-sm pt-0 h-5 overflow-hidden text-ellipsis line-clamp-2 mb-0">
                   {course.description || "No description available."}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex-grow space-y-2">
-                <div className="flex flex-wrap gap-2">
-                  {course.difficulty && (
-                    <Badge 
-                      variant="secondary"
-                      className={`
-                        ${course.difficulty === 'Beginner' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-300 dark:border-green-700' : ''}
-                        ${course.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700' : ''}
-                        ${course.difficulty === 'Advanced' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-300 dark:border-red-700' : ''}
-                      `}
-                    >
-                      {course.difficulty}
-                    </Badge>
+              <CardContent className="flex-grow space-y-2 pt-2 pb-3">
+                {course.difficulty && (
+                  <Badge
+                    variant="secondary"
+                    className={`
+                      w-fit text-xs font-medium px-2.5 py-0.5 rounded-full
+                      ${
+                        course.difficulty === "Beginner"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-300 dark:border-green-700"
+                          : ""
+                      }
+                      ${
+                        course.difficulty === "Intermediate"
+                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700"
+                          : ""
+                      }
+                      ${
+                        course.difficulty === "Advanced"
+                          ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-300 dark:border-red-700"
+                          : ""
+                      }
+                    `}
+                  >
+                    {course.difficulty}
+                  </Badge>
+                )}
+
+                {course.rating !== undefined && course.rating !== null && (
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />
+                    <span>{course.rating.toFixed(1)}</span>
+                  </div>
+                )}
+
+                {course.num_enrollments !== undefined &&
+                  course.num_enrollments !== null && (
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      <span>
+                        {course.num_enrollments.toLocaleString()} enrolled
+                      </span>
+                    </div>
                   )}
-                  {course.platform && <Badge variant="outline">{course.platform.name}</Badge>}
-                </div>
+
+                {course.platform && (
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Globe className="h-4 w-4" />
+                    <span>
+                      Platform: {course.platform.name || "N/A"}
+                    </span>
+                  </div>
+                )}
+
+                {course.institution && (
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Building className="h-4 w-4" />
+                    <span>
+                      Institution: {course.institution.name || "N/A"}
+                    </span>
+                  </div>
+                )}
+
+                {course.skills && course.skills.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-border/40">
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                      Skills:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {course.skills.slice(0, 3).map((skill) => (
+                        <Badge
+                          key={skill.skill_id}
+                          variant="outline"
+                          className="text-xs px-2 py-0.5"
+                        >
+                          {skill.name}
+                        </Badge>
+                      ))}
+                      {course.skills.length > 3 && (
+                        <Badge
+                          variant="outline"
+                          className="text-xs px-2 py-0.5"
+                        >
+                          ...
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
+              <CardFooter className="pt-2 pb-3 border-t border-border/40 flex items-center justify-between gap-2">
+                <Link
+                  href={course.url || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-grow"
+                >
+                  <Button variant="outline" className="w-full h-8 text-sm">
+                    View Course
+                  </Button>
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
+                  onClick={() => handleRemoveBookmark(course.course_id)}
+                  aria-label="Remove bookmark"
+                >
+                  <Bookmark className="h-5 w-5 fill-primary text-primary" />
+                </Button>
+              </CardFooter>
             </Card>
           ))}
         </div>
