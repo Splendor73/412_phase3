@@ -35,21 +35,53 @@ export default function SignInPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // Mock API call
-    console.log("Signing in with:", values);
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate network delay
+    try {
+      // Show loading state
+      console.log("Signing in...");
+      
+      // Call the backend API
+      const response = await fetch('http://localhost:5050/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: values.email,
+          password: values.password,
+        }),
+      });
 
-    // Replace with your actual API call logic
-    
-    // --- MOCK: Assume login is successful and we get user data ---
-    const mockFirstName = "Test"; // Replace with actual data later
-    if (typeof window !== "undefined") {
-      localStorage.setItem("userFirstName", mockFirstName);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        console.error("Login failed:", data.message);
+        // You could set an error state here
+        form.setError("root", { 
+          message: data.message || "Login failed. Please check your credentials."
+        });
+        return;
+      }
+      
+      // Success - store user data in localStorage
+      const user = data.user;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("userFirstName", user.firstName);
+        localStorage.setItem("userLastName", user.lastName);
+        localStorage.setItem("userEmail", user.email);
+        localStorage.setItem("userId", user.id.toString());
+        localStorage.setItem("userType", user.type);
+      }
+      
+      console.log("Login successful:", user);
+      
+      // Navigate to the dashboard on success
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Error during login:", error);
+      form.setError("root", { 
+        message: "An unexpected error occurred. Please try again."
+      });
     }
-    // --- END MOCK ---
-
-    // Navigate to the dashboard on success
-    router.push("/dashboard");
   }
 
   return (

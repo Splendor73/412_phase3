@@ -104,29 +104,111 @@ export default function AdditionalInfoPage() {
         return;
     }
 
-    const signupData = {
-      firstName,
-      lastName,
-      email,
-      password,
-      major: values.major,
-      skills: values.skills,
-    };
+    try {
+      // Show loading state
+      console.log("Completing sign up...");
 
-    console.log("Completing sign up with:", signupData);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Get the labels (not IDs) of the selected skills
+      const selectedSkillLabels = values.skills.map(skillId => {
+        const skill = availableSkills.find(s => s.id === skillId);
+        return skill ? skill.label : skillId;
+      });
 
-    if (typeof window !== "undefined") {
-        // Store the first name for the dashboard
-        if(firstName) localStorage.setItem("userFirstName", firstName);
-        
+      // Prepare data for the API
+      const signupData = {
+        firstName,
+        lastName,
+        email,
+        password,
+        type: 'student', // This is a student signup
+        major: values.major,
+        skillLevel: 'beginner', // Default value
+        learningGoals: selectedSkillLabels.join(', ') // Join skill labels with commas
+      };
+
+      console.log("Sending registration data to API:", signupData);
+
+      // Call the registration API
+      const response = await fetch('http://localhost:5050/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(signupData),
+      });
+
+      // Log the full response for debugging
+      console.log("Registration response status:", response.status);
+      
+      let data;
+      try {
+        data = await response.json();
+        console.log("Registration response data:", data);
+      } catch (jsonError) {
+        console.error("Failed to parse response JSON:", jsonError);
+        const responseText = await response.text();
+        console.log("Response text:", responseText);
+        form.setError("root", { 
+          message: "Server error: Failed to parse response. Check console for details."
+        });
+        return;
+      }
+      
+      if (!response.ok) {
+        console.error("Registration failed:", data.message);
+        form.setError("root", { 
+          message: data.message || "Registration failed. Please try again."
+        });
+        return;
+      }
+      
+      console.log("Registration successful:", data);
+      
+      // Registration successful - automatically log the user in
+      const loginResponse = await fetch('http://localhost:5050/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+        }),
+      });
+
+      const loginData = await loginResponse.json();
+      
+      if (!loginResponse.ok) {
+        // Registration succeeded but login failed - strange but possible
+        console.error("Login after registration failed:", loginData.message);
+      } else {
+        // Store user data in localStorage
+        const user = loginData.user;
+        if (typeof window !== "undefined") {
+          localStorage.setItem("userFirstName", user.firstName);
+          localStorage.setItem("userLastName", user.lastName);
+          localStorage.setItem("userEmail", user.email);
+          localStorage.setItem("userId", user.id.toString());
+          localStorage.setItem("userType", user.type);
+        }
+      }
+
+      if (typeof window !== "undefined") {
         // Clear temporary signup data
         localStorage.removeItem("signupFirstName");
         localStorage.removeItem("signupLastName");
         localStorage.removeItem("signupEmail");
         localStorage.removeItem("signupPassword");
+      }
+      
+      // Navigate to dashboard
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Error during registration:", error);
+      form.setError("root", { 
+        message: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}`
+      });
     }
-    router.push("/dashboard");
   }
 
   if (!firstName || !lastName || !email || !password) {
@@ -144,6 +226,12 @@ export default function AdditionalInfoPage() {
           <CardTitle>Welcome, {firstName}! Tell us more.</CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Display form error at the top */}
+          {form.formState.errors.root && (
+            <div className="mb-4 p-2 bg-red-50 border border-red-200 text-red-600 rounded">
+              {form.formState.errors.root.message}
+            </div>
+          )}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField

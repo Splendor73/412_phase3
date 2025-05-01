@@ -50,19 +50,26 @@ export default function SignUpPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // Mock API call for initial sign up step
-    console.log("Signing up (step 1) with:", values);
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate network delay
-
-    // Replace with your actual API call logic
-    // Store required data in local storage (NOT secure for production)
-    if (typeof window !== "undefined") {
+    try {
+      // Show loading state
+      console.log("Processing sign up...");
+      
+      // Store form data in localStorage to use in the next step
+      if (typeof window !== "undefined") {
         localStorage.setItem("signupFirstName", values.firstName);
         localStorage.setItem("signupLastName", values.lastName);
         localStorage.setItem("signupEmail", values.email);
         localStorage.setItem("signupPassword", values.password);
+      }
+      
+      // Navigate to additional info page
+      router.push("/auth/sign-up/additional-info");
+    } catch (error) {
+      console.error("Error during signup:", error);
+      form.setError("root", { 
+        message: "An unexpected error occurred. Please try again."
+      });
     }
-    router.push("/auth/sign-up/additional-info");
   }
 
   return (
