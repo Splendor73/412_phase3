@@ -4,14 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Bookmark, ArrowLeft } from "lucide-react";
-import { getUserBookmarks, removeBookmark } from "@/lib/api";
+import { Course, getUserBookmarks, removeBookmark } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 
 export default function BookmarksPage() {
   const router = useRouter();
-  const [bookmarkedCourses, setBookmarkedCourses] = useState<any[]>([]);
+  const [bookmarkedCourses, setBookmarkedCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -117,18 +117,9 @@ export default function BookmarksPage() {
                       {course.difficulty}
                     </Badge>
                   )}
-                  {course.major && <Badge variant="outline">{course.major}</Badge>}
-                  {course.platform_name && <Badge variant="outline">{course.platform_name}</Badge>}
+                  {course.platform && <Badge variant="outline">{course.platform.name}</Badge>}
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between items-center pt-4">
-                <span className="text-lg font-semibold">
-                  {course.price ? `$${course.price.toFixed(2)}` : "Free"}
-                </span>
-                <Link href={`/course/${course.course_id}`}>
-                  <Button size="sm">View</Button>
-                </Link>
-              </CardFooter>
             </Card>
           ))}
         </div>

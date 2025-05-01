@@ -41,11 +41,13 @@ def get_courses():
         
         # Build the query with filters
         query = '''
-            SELECT c.course_id, c.title, c.description, c.price, 
-                   c.duration, c.difficulty, c.platform_id, c.major,
-                   p.name as platform_name
+            SELECT c.course_id, c.title, c.description, c.url,
+                   c.rating, c.num_enrollments, c.difficulty, c.platform_id,
+                   p.name as platform_name, p.website,
+                   i.institution_id, i.name as institution_name
             FROM course c
             LEFT JOIN platform p ON c.platform_id = p.platform_id
+            LEFT JOIN institution i ON c.institution_id = i.institution_id
             WHERE 1=1
         '''
         params = []
@@ -55,49 +57,74 @@ def get_courses():
             query += ' AND c.difficulty = %s'
             params.append(request.args.get('difficulty'))
             
-        if request.args.get('major'):
-            query += ' AND c.major = %s'
-            params.append(request.args.get('major'))
-            
         if request.args.get('platform_id'):
             query += ' AND c.platform_id = %s'
             params.append(int(request.args.get('platform_id')))
             
-        if request.args.get('min_price'):
-            query += ' AND c.price >= %s'
-            params.append(float(request.args.get('min_price')))
+        if request.args.get('institution_id'):
+            query += ' AND c.institution_id = %s'
+            params.append(int(request.args.get('institution_id')))
             
-        if request.args.get('max_price'):
-            query += ' AND c.price <= %s'
-            params.append(float(request.args.get('max_price')))
+        if request.args.get('min_rating'):
+            query += ' AND c.rating >= %s'
+            params.append(float(request.args.get('min_rating')))
             
-        if request.args.get('skill_id'):
+        if request.args.get('skill_ids'):
             query = '''
-                SELECT DISTINCT c.course_id, c.title, c.description, c.price, 
-                       c.duration, c.difficulty, c.platform_id, c.major,
-                       p.name as platform_name
+                SELECT DISTINCT c.course_id, c.title, c.description, c.url,
+                       c.rating, c.num_enrollments, c.difficulty, c.platform_id,
+                       p.name as platform_name, p.website,
+                       i.institution_id, i.name as institution_name
                 FROM course c
                 LEFT JOIN platform p ON c.platform_id = p.platform_id
                 JOIN course_skills cs ON c.course_id = cs.course_id
-                WHERE cs.skill_id = %s
+                LEFT JOIN institution i ON c.institution_id = i.institution_id
+                WHERE cs.skill_id = ANY(%s)
             '''
-            params = [int(request.args.get('skill_id'))]
+            params = [int(skill_id) for skill_id in request.args.get('skill_ids').split(',')]
         
         cur.execute(query, params)
         courses = cur.fetchall()
         
+        # --- Fetch Skills for the fetched courses --- 
+        course_ids = [course[0] for course in courses]
+        skills_map = {}
+        if course_ids:
+            skills_query = '''
+                SELECT cs.course_id, s.skill_id, s.name
+                FROM course_skills cs
+                JOIN skill s ON cs.skill_id = s.skill_id
+                WHERE cs.course_id = ANY(%s)
+            '''
+            cur.execute(skills_query, (course_ids,))
+            skills_data = cur.fetchall()
+            for course_id, skill_id, skill_name in skills_data:
+                if course_id not in skills_map:
+                    skills_map[course_id] = []
+                skills_map[course_id].append({'skill_id': skill_id, 'name': skill_name})
+        # --- End Fetch Skills ---
+        
         result = []
         for course in courses:
+            course_id = course[0]
             course_data = {
-                'course_id': course[0],
+                'course_id': course_id,
                 'title': course[1],
                 'description': course[2],
-                'price': float(course[3]) if course[3] else None,
-                'duration': course[4],
-                'difficulty': course[5],
-                'platform_id': course[6],
-                'major': course[7],
-                'platform_name': course[8]
+                'url': course[3],
+                'rating': course[4],
+                'num_enrollments': course[5],
+                'difficulty': course[6],
+                'platform': {
+                    'platform_id': course[7],
+                    'name': course[8],
+                    'website': course[9]
+                },
+                'institution': {
+                    'institution_id': course[10],
+                    'name': course[11]
+                },
+                'skills': skills_map.get(course_id, [])
             }
             result.append(course_data)
             
@@ -116,12 +143,14 @@ def get_course(course_id):
         cur = conn.cursor()
         
         # Get course details
-        cur.execute('''
-            SELECT c.course_id, c.title, c.description, c.price, 
-                   c.duration, c.difficulty, c.platform_id, c.major,
-                   p.name as platform_name
+        cur.execute(''' 
+            SELECT c.course_id, c.title, c.description, c.url,
+                   c.rating, c.num_enrollments, c.difficulty, c.platform_id,
+                   p.name as platform_name, p.website,
+                   i.institution_id, i.name as institution_name
             FROM course c
             LEFT JOIN platform p ON c.platform_id = p.platform_id
+            LEFT JOIN institution i ON c.institution_id = i.institution_id
             WHERE c.course_id = %s
         ''', (course_id,))
         
@@ -151,12 +180,19 @@ def get_course(course_id):
             'course_id': course[0],
             'title': course[1],
             'description': course[2],
-            'price': float(course[3]) if course[3] else None,
-            'duration': course[4],
-            'difficulty': course[5],
-            'platform_id': course[6],
-            'major': course[7],
-            'platform_name': course[8],
+            'url': course[3],
+            'rating': course[4],
+            'num_enrollments': course[5],
+            'difficulty': course[6],
+            'platform': {
+                'platform_id': course[7],
+                'name': course[8],
+                'website': course[9]
+            },
+            'institution': {
+                'institution_id': course[10],
+                'name': course[11]
+            },
             'prerequisites': [{'course_id': p[0], 'title': p[1]} for p in prerequisites],
             'skills': [{'skill_id': s[0], 'name': s[1]} for s in skills]
         }
@@ -179,10 +215,14 @@ def get_user_bookmarks():
     cur = conn.cursor()
     try:
         cur.execute('''
-            SELECT c.*, p.name as platform_name
+            SELECT c.course_id, c.title, c.description, c.url,
+                   c.rating, c.num_enrollments, c.difficulty, c.platform_id,
+                   p.name as platform_name, p.website,
+                   i.institution_id, i.name as institution_name
             FROM bookmark b
             JOIN course c ON b.course_id = c.course_id
-            JOIN platform p ON c.platform_id = p.platform_id
+            LEFT JOIN platform p ON c.platform_id = p.platform_id
+            LEFT JOIN institution i ON c.institution_id = i.institution_id
             WHERE b.user_id = %s
         ''', (user_id,))
         bookmarks = cur.fetchall()
@@ -194,12 +234,19 @@ def get_user_bookmarks():
                 'course_id': bookmark[0],
                 'title': bookmark[1],
                 'description': bookmark[2],
-                'price': float(bookmark[3]) if bookmark[3] else None,
-                'duration': bookmark[4],
-                'difficulty': bookmark[5],
-                'platform_id': bookmark[6],
-                'major': bookmark[7],
-                'platform_name': bookmark[8]
+                'url': bookmark[3],
+                'rating': bookmark[4],
+                'num_enrollments': bookmark[5],
+                'difficulty': bookmark[6],
+                'platform': {
+                    'platform_id': bookmark[7],
+                    'name': bookmark[8],
+                    'website': bookmark[9]
+                },
+                'institution': {
+                    'institution_id': bookmark[10],
+                    'name': bookmark[11]
+                }
             })
         
         return jsonify(bookmarks_list)
@@ -287,19 +334,26 @@ def get_platforms():
     finally:
         if conn:
             conn.close()
-
-@app.route('/api/majors', methods=['GET'])
-def get_majors():
-    """Get all available majors"""
+            
+@app.route('/api/institutions', methods=['GET'])
+def get_institutions():
+    """Get all available institutions"""
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
         
-        cur.execute('SELECT DISTINCT major FROM course WHERE major IS NOT NULL')
-        majors = cur.fetchall()
+        cur.execute('SELECT institution_id, name FROM institution')
+        institutions = cur.fetchall()
         
-        result = [major[0] for major in majors]
+        result = []
+        for institution in institutions:
+            institution_data = {
+                'institution_id': institution[0],
+                'name': institution[1]
+            }
+            result.append(institution_data)
+            
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -332,6 +386,187 @@ def get_skills():
     finally:
         if conn:
             conn.close()
+
+# --- User Profile Endpoints ---
+
+@app.route('/api/users/<int:user_id>', methods=['GET'])
+def get_user_profile(user_id):
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute('''
+            SELECT u.user_id, u.first_name, u.last_name, u.email, u.type, 
+                   s.major, s.skill_level
+            FROM "user" u
+            LEFT JOIN student s ON u.user_id = s.user_id
+            WHERE u.user_id = %s
+        ''', (user_id,))
+        user = cur.fetchone()
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        user_data = {
+            'user_id': user[0],
+            'first_name': user[1],
+            'last_name': user[2],
+            'email': user[3],
+            'type': user[4],
+            'major': user[5],
+            'level': user[6]
+        }
+        return jsonify(user_data)
+    except Exception as e:
+        print(f"Error fetching user {user_id}: {e}")
+        return jsonify({"error": "Failed to fetch user profile", "details": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/users/<int:user_id>', methods=['PUT'])
+def update_user_profile(user_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Separate user table fields from student table fields
+        user_set_clauses = []
+        user_params = []
+        student_set_clauses = []
+        student_params = []
+        
+        # Fields for user table
+        user_fields = ['first_name', 'last_name', 'email', 'type']
+        # Fields for student table
+        student_fields = ['major']
+        
+        # Special handling for level which maps to skill_level in DB
+        if 'level' in data:
+            student_set_clauses.append("skill_level = %s")
+            student_params.append(data['level'])
+        
+        # Process user table fields
+        for field in user_fields:
+            if field in data:
+                user_set_clauses.append(f"{field} = %s")
+                user_params.append(data[field])
+
+        # Process student table fields (except level already handled)
+        for field in student_fields:
+            if field in data:
+                student_set_clauses.append(f"{field} = %s")
+                student_params.append(data[field])
+                
+        if not user_set_clauses and not student_set_clauses:
+            return jsonify({"error": "No valid fields provided for update"}), 400
+
+        # Start a transaction since we need to update potentially two tables
+        conn.autocommit = False
+        updated_user = None
+        
+        # Update user table if needed
+        if user_set_clauses:
+            user_params.append(user_id)  # Add user_id for WHERE clause
+            user_query = f'''
+                UPDATE "user"
+                SET {', '.join(user_set_clauses)}
+                WHERE user_id = %s
+                RETURNING user_id, first_name, last_name, email, type
+            '''
+            cur.execute(user_query, tuple(user_params))
+            updated_user = cur.fetchone()
+            
+            if not updated_user:
+                conn.rollback()
+                return jsonify({"error": "User not found or update failed"}), 404
+        
+        # Check if we need to update the student table
+        if student_set_clauses:
+            # First check if student record exists
+            cur.execute('SELECT 1 FROM student WHERE user_id = %s', (user_id,))
+            student_exists = cur.fetchone() is not None
+            
+            if student_exists:
+                # Update existing student record
+                student_params.append(user_id)  # Add user_id for WHERE clause
+                student_query = f'''
+                    UPDATE student
+                    SET {', '.join(student_set_clauses)}
+                    WHERE user_id = %s
+                    RETURNING user_id, major, skill_level
+                '''
+                cur.execute(student_query, tuple(student_params))
+            else:
+                # Insert new student record if it doesn't exist
+                all_fields = ['user_id']
+                all_values = [user_id]
+                
+                if 'major' in data:
+                    all_fields.append('major')
+                    all_values.append(data['major'])
+                
+                if 'level' in data:
+                    all_fields.append('skill_level') 
+                    all_values.append(data['level'])
+                
+                if len(all_fields) > 1:  # Only if we have fields beyond user_id
+                    student_query = f'''
+                        INSERT INTO student ({', '.join(all_fields)})
+                        VALUES ({', '.join(['%s' for _ in all_fields])})
+                        RETURNING user_id, major, skill_level
+                    '''
+                    cur.execute(student_query, tuple(all_values))
+        
+        # If we only updated student table, we need to fetch user data separately
+        if not updated_user:
+            cur.execute('''
+                SELECT user_id, first_name, last_name, email, type
+                FROM "user" WHERE user_id = %s
+            ''', (user_id,))
+            updated_user = cur.fetchone()
+            
+            if not updated_user:
+                conn.rollback()
+                return jsonify({"error": "User not found"}), 404
+        
+        # Fetch the updated student data
+        cur.execute('''
+            SELECT major, skill_level FROM student WHERE user_id = %s
+        ''', (user_id,))
+        student_data = cur.fetchone()
+        
+        conn.commit()
+        
+        # Return updated user data
+        user_data = {
+            'user_id': updated_user[0],
+            'first_name': updated_user[1],
+            'last_name': updated_user[2],
+            'email': updated_user[3],
+            'type': updated_user[4],
+            'major': student_data[0] if student_data else None,
+            'level': student_data[1] if student_data else None
+        }
+        return jsonify({"message": "Profile updated successfully", "user": user_data})
+        
+    except Exception as e:
+        if conn: conn.rollback()
+        print(f"Error updating user {user_id}: {e}")
+        # Check for unique constraint violation (e.g., email already exists)
+        if 'unique constraint' in str(e).lower() and 'email' in str(e).lower():
+             return jsonify({"error": "Email already in use by another account."}), 409 # Conflict
+        return jsonify({"error": "Failed to update profile", "details": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+# --- End User Profile Endpoints ---
 
 if __name__ == '__main__':
     # Check if this is the initial startup (not a reload)

@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link"; // Import Link
+import { API_BASE_URL } from "@/lib/api";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -40,7 +41,7 @@ export default function SignInPage() {
       console.log("Signing in...");
       
       // Call the backend API
-      const response = await fetch('http://localhost:5050/api/auth/login', {
+      const response = await fetch(API_BASE_URL + '/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -70,6 +71,8 @@ export default function SignInPage() {
         localStorage.setItem("userEmail", user.email);
         localStorage.setItem("userId", user.id.toString());
         localStorage.setItem("userType", user.type);
+        localStorage.setItem("userMajor", user.major);
+        localStorage.setItem("userLevel", user.skillLevel);
       }
       
       console.log("Login successful:", user);

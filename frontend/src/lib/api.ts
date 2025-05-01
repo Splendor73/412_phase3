@@ -1,14 +1,63 @@
 // API utility functions for interacting with the backend
 
-const API_BASE_URL = 'http://localhost:5050/api';
+export const API_BASE_URL = 'http://localhost:5050/api';
 
 interface FilterParams {
   difficulty?: string;
-  major?: string;
   platform_id?: number;
-  min_price?: number;
-  max_price?: number;
-  skill_id?: number;
+  institution_id?: number;
+  min_rating?: number;
+  skill_ids?: number[];
+}
+
+export const skillLevels = ["Beginner", "Intermediate", "Advanced"] as const;
+
+export const majors = [
+  'Computer Science',
+  'Mechanical Engineering',
+  'Electrical Engineering',
+  'Business Administration',
+  'Biology',
+  'Psychology',
+  'Finance',
+  'Marketing',
+  'Civil Engineering',
+  'Mathematics'
+] as const;
+
+export interface CoursePrerequisite {
+  course_id: number;
+  title: string;
+}
+
+export interface Course {
+  course_id: number;
+  title: string;
+  description: string;
+  url: string;
+  rating: number;
+  num_enrollments: number;
+  difficulty: string;
+  platform: Platform;
+  institution: Institution;
+  skills?: Skill[];
+  prerequisites?: CoursePrerequisite[];
+}
+
+export interface Platform {
+  platform_id: number;
+  name: string;
+  website: string;
+}
+
+export interface Institution {
+  institution_id: number;
+  name: string;
+}
+
+export interface Skill {
+  skill_id: number;
+  name: string;
 }
 
 /**
@@ -23,22 +72,24 @@ export async function getCourses(filters?: FilterParams) {
     if (filters) {
       const params = new URLSearchParams();
       if (filters.difficulty) params.append('difficulty', filters.difficulty);
-      if (filters.major) params.append('major', filters.major);
       if (filters.platform_id) params.append('platform_id', filters.platform_id.toString());
-      if (filters.min_price) params.append('min_price', filters.min_price.toString());
-      if (filters.max_price) params.append('max_price', filters.max_price.toString());
-      if (filters.skill_id) params.append('skill_id', filters.skill_id.toString());
+      if (filters.institution_id) params.append('institution_id', filters.institution_id.toString());
+      if (filters.min_rating) params.append('min_rating', filters.min_rating.toString());
+      if (filters.skill_ids) params.append('skill_ids', filters.skill_ids.join(','));
       
       url += `?${params.toString()}`;
     }
     
     const response = await fetch(url);
+
     
     if (!response.ok) {
       throw new Error(`Error: ${response.status}`);
     }
     
-    return await response.json();
+    const data = await response.json();
+    console.log("courses:", data);
+    return data;
   } catch (error) {
     console.error('Error fetching courses:', error);
     throw error;
@@ -190,4 +241,88 @@ export async function removeBookmark(userId: number, courseId: number) {
     console.error('Error removing bookmark:', error);
     throw error;
   }
+}
+
+/**
+ * Fetch all institutions from the API
+ * @returns Promise with institutions data
+ */
+export async function getInstitutions() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/institutions`);
+    
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching institutions:', error);
+    throw error;
+  }
+}
+
+// --- User Profile Functions ---
+
+/**
+ * User Profile data structure
+ */
+export interface UserProfile {
+  user_id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  level?: string | null; // Optional fields
+  major?: string | null; // Optional fields
+}
+
+/**
+ * Fetch user profile details
+ * @param userId - The ID of the user
+ * @returns Promise with user profile data
+ */
+export async function getUserDetails(userId: number): Promise<UserProfile> {
+  try {
+    console.log("Fetching user details for user:", userId);
+    const response = await fetch(`${API_BASE_URL}/users/${userId}`);
+    
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({})); // Try to get error details
+        throw new Error(`Error: ${response.status} - ${errorData.error || 'Failed to fetch user details'}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching user details for user ${userId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Update user profile details
+ * @param userId - The ID of the user
+ * @param data - Object containing fields to update (e.g., { first_name: 'New', level: 'Intermediate' })
+ * @returns Promise with the updated user profile data
+ */
+export async function updateUserDetails(userId: number, data: Partial<UserProfile>): Promise<{ message: string; user: UserProfile }> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+            throw new Error(`Error: ${response.status} - ${responseData.error || 'Failed to update profile'}`);
+        }
+
+        return responseData;
+    } catch (error) {
+        console.error(`Error updating user details for user ${userId}:`, error);
+        throw error;
+    }
 } 

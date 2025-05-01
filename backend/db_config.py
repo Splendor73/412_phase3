@@ -3,11 +3,11 @@ from psycopg2 import Error
 
 # Database configuration
 DB_CONFIG = {
-    'dbname': 'phase3_db',
-    'user': 'yashupatel',
-    'password': '19**',
+    'dbname': 'cse412phase2',
+    'user': 'postgres',
+    'password': 'admin',
     'host': 'localhost',
-    'port': '5417'
+    'port': '5432'
 }
 
 def get_db_connection():
@@ -68,8 +68,7 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS student (
                     user_id INTEGER PRIMARY KEY REFERENCES "user"(user_id) ON DELETE CASCADE,
                     major VARCHAR(100),
-                    skill_level VARCHAR(50),
-                    learning_goals TEXT
+                    skill_level VARCHAR(50)
                 );
 
                 -- Create ASU Admin table
@@ -87,16 +86,26 @@ def init_db():
                 );
 
                 -- Create Course table
-                CREATE TABLE IF NOT EXISTS course (
-                    course_id SERIAL PRIMARY KEY,
-                    title VARCHAR(255) NOT NULL,
-                    description TEXT,
-                    price NUMERIC(10,2),
-                    duration VARCHAR(50),
-                    difficulty VARCHAR(50),
-                    platform_id INTEGER REFERENCES platform(platform_id),
-                    major VARCHAR(100)
-                );
+                CREATE TABLE IF NOT EXISTS public.course (
+                    course_id integer NOT NULL DEFAULT nextval('course_course_id_seq'::regclass),
+                    title character varying(255) COLLATE pg_catalog."default" NOT NULL,
+                    description text COLLATE pg_catalog."default",
+                    difficulty character varying(50) COLLATE pg_catalog."default",
+                    platform_id integer,
+                    rating double precision,
+                    url character varying(512) COLLATE pg_catalog."default",
+                    num_enrollments integer NOT NULL DEFAULT 0,
+                    institution_id integer,
+                    CONSTRAINT course_pkey PRIMARY KEY (course_id),
+                    CONSTRAINT course_platform_id_fkey FOREIGN KEY (platform_id)
+                        REFERENCES public.platform (platform_id) MATCH SIMPLE
+                        ON UPDATE NO ACTION
+                        ON DELETE SET NULL,
+                    CONSTRAINT fk_courses_institution FOREIGN KEY (institution_id)
+                        REFERENCES public.institution (institution_id) MATCH SIMPLE
+                        ON UPDATE NO ACTION
+                        ON DELETE SET NULL
+                )
 
                 -- Create Course Prerequisites table
                 CREATE TABLE IF NOT EXISTS course_prerequisite (
@@ -132,6 +141,16 @@ def init_db():
                     skill_id INTEGER REFERENCES skill(skill_id) ON DELETE CASCADE,
                     PRIMARY KEY (course_id, skill_id)
                 );
+                
+                -- Create Institution table
+                CREATE TABLE IF NOT EXISTS public.institution
+                (
+                    institution_id integer NOT NULL DEFAULT nextval('institution_institution_id_seq'::regclass),
+                    name character varying(100) COLLATE pg_catalog."default" NOT NULL,
+                    CONSTRAINT institution_pkey PRIMARY KEY (institution_id)
+                );
+                
+                
             ''')
             
             conn.commit()

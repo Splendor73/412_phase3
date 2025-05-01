@@ -76,6 +76,7 @@ def register():
         email = data['email']
         password = data['password']
         user_type = data['type']  # 'student' or 'admin'
+        skill_ids = data.get('skillIds') if user_type == 'student' else None
         
         # Basic validation
         if not is_valid_email(email):
@@ -90,16 +91,8 @@ def register():
         # Additional fields based on user type
         major = data.get('major') if user_type == 'student' else None
         skill_level = data.get('skillLevel') if user_type == 'student' else None
-        learning_goals = data.get('learningGoals') if user_type == 'student' else None
         department = data.get('department') if user_type == 'admin' else None
         job_title = data.get('jobTitle') if user_type == 'admin' else None
-        
-        # Get skill IDs from comma-separated learning_goals if present
-        skill_ids = []
-        if learning_goals:
-            # Extract skill names from the comma-separated string
-            skill_names = [s.strip() for s in learning_goals.split(',')]
-            print(f"Processing skills: {skill_names}")
         
         print(f"Processing registration for {user_type}: {first_name} {last_name} <{email}>")
         
@@ -137,33 +130,15 @@ def register():
             # Insert additional data based on user type
             if user_type == 'student':
                 cur.execute(
-                    "INSERT INTO student (user_id, major, skill_level, learning_goals) VALUES (%s, %s, %s, %s)",
-                    (user_id, major, skill_level, learning_goals)
+                    "INSERT INTO student (user_id, major, skill_level) VALUES (%s, %s, %s)",
+                    (user_id, major, skill_level)
                 )
                 
                 # Process skills if any are provided
-                if skill_names:
-                    for skill_name in skill_names:
-                        if not skill_name:
+                if skill_ids:
+                    for skill_id in skill_ids:
+                        if not skill_id:
                             continue
-                            
-                        # Check if skill exists
-                        cur.execute("SELECT skill_id FROM skill WHERE name = %s", (skill_name,))
-                        result = cur.fetchone()
-                        
-                        if result:
-                            # Skill exists, get its ID
-                            skill_id = result[0]
-                        else:
-                            # Create new skill
-                            cur.execute(
-                                "INSERT INTO skill (name) VALUES (%s) RETURNING skill_id",
-                                (skill_name,)
-                            )
-                            skill_id = cur.fetchone()[0]
-                        
-                        # Add to skill_ids for later
-                        skill_ids.append(skill_id)
                         
                         # Link skill to user
                         cur.execute(
@@ -260,16 +235,15 @@ def login():
         additional_info = {}
         if user_type == 'student':
             cur.execute(
-                "SELECT major, skill_level, learning_goals FROM student WHERE user_id = %s", 
+                "SELECT major, skill_level FROM student WHERE user_id = %s", 
                 (user_id,)
             )
             student_info = cur.fetchone()
             if student_info:
-                major, skill_level, learning_goals = student_info
+                major, skill_level = student_info
                 additional_info = {
                     "major": major,
-                    "skillLevel": skill_level,
-                    "learningGoals": learning_goals
+                    "skillLevel": skill_level
                 }
         elif user_type == 'admin':
             cur.execute(

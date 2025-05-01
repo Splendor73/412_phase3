@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { API_BASE_URL, majors, skillLevels } from "@/lib/api";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,37 +27,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const majors = [
-  'Computer Science',
-  'Mechanical Engineering',
-  'Electrical Engineering',
-  'Business Administration',
-  'Biology',
-  'Psychology',
-  'Finance',
-  'Marketing',
-  'Civil Engineering',
-  'Mathematics'
-] as const;
+interface Skill {
+  skill_id: number;
+  name: string;
+}
 
-const availableSkills = [
-  { id: "nextjs", label: "Next.js" },
-  { id: "react", label: "React" },
-  { id: "typescript", label: "TypeScript" },
-  { id: "python", label: "Python" },
-  { id: "java", label: "Java" },
-  { id: "docker", label: "Docker" },
-  { id: "kubernetes", label: "Kubernetes" },
-  { id: "aws", label: "AWS" },
-  { id: "gcp", label: "GCP" },
-  { id: "sql", label: "SQL" },
-  { id: "mongodb", label: "MongoDB" },
-  { id: "tailwind", label: "Tailwind CSS" },
-];
+interface UISkill {
+  id: string;
+  label: string;
+}
 
 const formSchema = z.object({
   major: z.enum(majors, { required_error: "Major is required." }),
+  skillLevel: z.enum(skillLevels, { required_error: "Skill level is required."}),
   skills: z.array(z.string()).refine((value) => value.length > 0, {
     message: "Please select at least one skill you want to learn.",
   }),
@@ -69,6 +54,10 @@ export default function AdditionalInfoPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [password, setPassword] = useState<string | null>(null);
   const [skillSearchTerm, setSkillSearchTerm] = useState("");
+
+  const [allSkills, setAllSkills] = useState<UISkill[]>([]);
+  const [isLoadingSkills, setIsLoadingSkills] = useState(true);
+  const [fetchSkillsError, setFetchSkillsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -86,6 +75,31 @@ export default function AdditionalInfoPage() {
           setPassword(storedPassword);
         }
     }
+
+    const fetchSkills = async () => {
+      setIsLoadingSkills(true);
+      setFetchSkillsError(null);
+      try {
+        const response = await fetch(`${API_BASE_URL}/skills`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: Skill[] = await response.json();
+        const uiSkills = data.map(skill => ({
+          id: skill.skill_id.toString(),
+          label: skill.name,
+        }));
+        setAllSkills(uiSkills);
+      } catch (error) {
+        console.error("Failed to fetch skills:", error);
+        setFetchSkillsError(error instanceof Error ? error.message : "An unknown error occurred");
+      } finally {
+        setIsLoadingSkills(false);
+      }
+    };
+
+    fetchSkills();
+
   }, [router]);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -93,6 +107,7 @@ export default function AdditionalInfoPage() {
     defaultValues: {
       major: undefined,
       skills: [],
+      skillLevel: undefined,
     },
     mode: "onChange",
   });
@@ -105,31 +120,27 @@ export default function AdditionalInfoPage() {
     }
 
     try {
-      // Show loading state
       console.log("Completing sign up...");
 
-      // Get the labels (not IDs) of the selected skills
-      const selectedSkillLabels = values.skills.map(skillId => {
-        const skill = availableSkills.find(s => s.id === skillId);
+      const selectedSkillLabels = values.skills.map((skillId: string) => {
+        const skill = allSkills.find(s => s.id === skillId);
         return skill ? skill.label : skillId;
       });
 
-      // Prepare data for the API
       const signupData = {
         firstName,
         lastName,
         email,
         password,
-        type: 'student', // This is a student signup
+        type: 'student',
         major: values.major,
-        skillLevel: 'beginner', // Default value
-        learningGoals: selectedSkillLabels.join(', ') // Join skill labels with commas
+        skillLevel: values.skillLevel,
+        learningGoals: selectedSkillLabels.join(', ')
       };
 
       console.log("Sending registration data to API:", signupData);
 
-      // Call the registration API
-      const response = await fetch('http://localhost:5050/api/auth/register', {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,7 +148,6 @@ export default function AdditionalInfoPage() {
         body: JSON.stringify(signupData),
       });
 
-      // Log the full response for debugging
       console.log("Registration response status:", response.status);
       
       let data;
@@ -148,7 +158,7 @@ export default function AdditionalInfoPage() {
         console.error("Failed to parse response JSON:", jsonError);
         const responseText = await response.text();
         console.log("Response text:", responseText);
-        form.setError("root", { 
+        form.setError("root", {
           message: "Server error: Failed to parse response. Check console for details."
         });
         return;
@@ -156,7 +166,7 @@ export default function AdditionalInfoPage() {
       
       if (!response.ok) {
         console.error("Registration failed:", data.message);
-        form.setError("root", { 
+        form.setError("root", {
           message: data.message || "Registration failed. Please try again."
         });
         return;
@@ -164,8 +174,7 @@ export default function AdditionalInfoPage() {
       
       console.log("Registration successful:", data);
       
-      // Registration successful - automatically log the user in
-      const loginResponse = await fetch('http://localhost:5050/api/auth/login', {
+      const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -179,10 +188,8 @@ export default function AdditionalInfoPage() {
       const loginData = await loginResponse.json();
       
       if (!loginResponse.ok) {
-        // Registration succeeded but login failed - strange but possible
         console.error("Login after registration failed:", loginData.message);
       } else {
-        // Store user data in localStorage
         const user = loginData.user;
         if (typeof window !== "undefined") {
           localStorage.setItem("userFirstName", user.firstName);
@@ -190,32 +197,32 @@ export default function AdditionalInfoPage() {
           localStorage.setItem("userEmail", user.email);
           localStorage.setItem("userId", user.id.toString());
           localStorage.setItem("userType", user.type);
+          localStorage.setItem("userMajor", user.major);
+          localStorage.setItem("userLevel", user.skillLevel);
         }
       }
 
       if (typeof window !== "undefined") {
-        // Clear temporary signup data
         localStorage.removeItem("signupFirstName");
         localStorage.removeItem("signupLastName");
         localStorage.removeItem("signupEmail");
         localStorage.removeItem("signupPassword");
       }
       
-      // Navigate to dashboard
       router.push("/dashboard");
     } catch (error) {
       console.error("Error during registration:", error);
-      form.setError("root", { 
+      form.setError("root", {
         message: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}`
       });
     }
   }
 
   if (!firstName || !lastName || !email || !password) {
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen">Loading user data...</div>;
   }
 
-  const filteredSkills = availableSkills.filter(skill =>
+  const filteredSkills = allSkills.filter(skill =>
     skill.label.toLowerCase().includes(skillSearchTerm.toLowerCase())
   );
 
@@ -226,7 +233,6 @@ export default function AdditionalInfoPage() {
           <CardTitle>Welcome, {firstName}! Tell us more.</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Display form error at the top */}
           {form.formState.errors.root && (
             <div className="mb-4 p-2 bg-red-50 border border-red-200 text-red-600 rounded">
               {form.formState.errors.root.message}
@@ -261,6 +267,35 @@ export default function AdditionalInfoPage() {
 
               <FormField
                 control={form.control}
+                name="skillLevel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Current Skill Level</FormLabel>
+                    <FormDescription>
+                      How would you rate your overall technical skill level?
+                    </FormDescription>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your skill level" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {skillLevels.map((level) => (
+                          <SelectItem key={level} value={level}>
+                            {level}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="skills"
                 render={() => (
                   <FormItem>
@@ -274,56 +309,68 @@ export default function AdditionalInfoPage() {
                       placeholder="Search skills..."
                       value={skillSearchTerm}
                       onChange={(e) => setSkillSearchTerm(e.target.value)}
-                      className="mb-4"
+                      disabled={isLoadingSkills}
                     />
-
-                    <div className="max-h-[180px] overflow-y-auto border rounded-md p-2 pr-1 space-y-0">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-1">
-                        {filteredSkills.length > 0 ? (
-                          filteredSkills.map((skill) => (
-                            <FormField
-                              key={skill.id}
-                              control={form.control}
-                              name="skills"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={skill.id}
-                                    className="flex flex-row items-center space-x-2 space-y-0 rounded-md border p-3 justify-start hover:bg-accent"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(skill.id)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...(field.value || []), skill.id])
-                                            : field.onChange(
-                                                (field.value || [])?.filter(
-                                                  (value) => value !== skill.id
-                                                )
-                                              );
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="text-sm font-normal cursor-pointer flex-grow">
-                                      {skill.label}
-                                    </FormLabel>
-                                  </FormItem>
-                                );
-                              }}
-                            />
-                          ))
-                        ) : (
-                          <p className="text-sm text-muted-foreground col-span-full text-center py-4">No skills found.</p>
-                        )}
-                      </div>
+                    <div className="max-h-[200px] overflow-y-auto">
+                      {isLoadingSkills ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-1">
+                          {Array.from({ length: 6 }).map((_, index) => (
+                            <div key={index} className="flex items-center space-x-2 p-3">
+                              <Skeleton className="h-4 w-4" />
+                              <Skeleton className="h-4 w-full" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : fetchSkillsError ? (
+                        <p className="text-sm text-red-600 col-span-full text-center py-4">Error loading skills: {fetchSkillsError}</p>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-1">
+                          {filteredSkills.length > 0 ? (
+                            filteredSkills.map((skill) => (
+                              <FormField
+                                key={skill.id}
+                                control={form.control}
+                                name="skills"
+                                render={({ field }) => {
+                                  return (
+                                    <FormItem
+                                      key={skill.id}
+                                      className="flex flex-row items-center space-x-2 space-y-0 rounded-md border p-3 justify-start hover:bg-accent"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={field.value?.includes(skill.id)}
+                                          onCheckedChange={(checked) => {
+                                            return checked
+                                              ? field.onChange([...(field.value || []), skill.id])
+                                              : field.onChange(
+                                                  (field.value || [])?.filter(
+                                                    (value: string) => value !== skill.id
+                                                  )
+                                                );
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="text-sm font-normal cursor-pointer flex-grow">
+                                        {skill.label}
+                                      </FormLabel>
+                                    </FormItem>
+                                  );
+                                }}
+                              />
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground col-span-full text-center py-4">No skills found matching your search.</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <Button type="submit" className="w-full">Complete Sign Up</Button>
+              <Button type="submit" className="w-full" disabled={isLoadingSkills || !allSkills.length}>Complete Sign Up</Button>
             </form>
           </Form>
         </CardContent>

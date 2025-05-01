@@ -11,7 +11,7 @@ A platform for ASU students to discover and bookmark online courses based on the
 
 - 📚 **Course Discovery**
   - Browse courses from multiple platforms
-  - Advanced filtering (major, difficulty, platform, price)
+  - Advanced filtering (major, difficulty, platform, institution)
   - Course details with prerequisites and skills
 
 - 🔖 **Bookmarking**
