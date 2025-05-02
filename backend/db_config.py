@@ -3,9 +3,9 @@ from psycopg2 import Error
 
 # Database configuration
 DB_CONFIG = {
-    'dbname': 'cse412phase2',
-    'user': 'postgres',
-    'password': 'admin',
+    'dbname': 'phase3_db',
+    'user': 'yashupatel',
+    'password': '1973',
     'host': 'localhost',
     'port': '5432'
 }

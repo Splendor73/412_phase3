@@ -568,6 +568,103 @@ def update_user_profile(user_id):
 
 # --- End User Profile Endpoints ---
 
+# --- Add Scrape Courses API ---
+@app.route('/api/scrape-courses', methods=['GET'])
+def scrape_more_courses():
+    try:
+        # Get query parameters
+        query = request.args.get('query', '')
+        max_courses = int(request.args.get('max_courses', '10'))
+        min_new_courses = int(request.args.get('min_new_courses', '5'))
+        
+        if not query:
+            return jsonify({"error": "Query parameter is required"}), 400
+            
+        # Import here to avoid circular imports
+        from scraper import scrape_and_store
+        
+        # Run the scraper
+        print(f"Starting scraper for query: {query} with max_courses: {max_courses}, min_new_courses: {min_new_courses}")
+        new_course_ids = scrape_and_store(query, max_courses, min_new_courses)
+        
+        if not new_course_ids:
+            print("No new courses found")
+            return jsonify({"message": "No new courses found or added", "courses": []}), 200
+            
+        print(f"Found {len(new_course_ids)} new courses")
+        
+        # Fetch the newly added courses with full details to return to frontend
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        placeholders = ','.join(['%s'] * len(new_course_ids))
+        query = f'''
+            SELECT c.course_id, c.title, c.description, c.url,
+                   c.rating, c.num_enrollments, c.difficulty, c.platform_id,
+                   p.name as platform_name, p.website,
+                   i.institution_id, i.name as institution_name
+            FROM course c
+            LEFT JOIN platform p ON c.platform_id = p.platform_id
+            LEFT JOIN institution i ON c.institution_id = i.institution_id
+            WHERE c.course_id IN ({placeholders})
+        '''
+        
+        cur.execute(query, new_course_ids)
+        courses = cur.fetchall()
+        
+        # Fetch skills for the new courses
+        skills_map = {}
+        if new_course_ids:
+            skills_query = '''
+                SELECT cs.course_id, s.skill_id, s.name
+                FROM course_skills cs
+                JOIN skill s ON cs.skill_id = s.skill_id
+                WHERE cs.course_id = ANY(%s)
+            '''
+            cur.execute(skills_query, (new_course_ids,))
+            skills_data = cur.fetchall()
+            
+            for course_id, skill_id, skill_name in skills_data:
+                if course_id not in skills_map:
+                    skills_map[course_id] = []
+                skills_map[course_id].append({'skill_id': skill_id, 'name': skill_name})
+        
+        # Format the new courses just like in get_courses route
+        result = []
+        for course in courses:
+            course_id = course[0]
+            course_data = {
+                'course_id': course_id,
+                'title': course[1],
+                'description': course[2],
+                'url': course[3],
+                'rating': course[4],
+                'num_enrollments': course[5],
+                'difficulty': course[6],
+                'platform': {
+                    'platform_id': course[7],
+                    'name': course[8],
+                    'website': course[9]
+                },
+                'institution': {
+                    'institution_id': course[10],
+                    'name': course[11]
+                },
+                'skills': skills_map.get(course_id, [])
+            }
+            result.append(course_data)
+            
+        conn.close()
+        
+        return jsonify({
+            "message": f"Successfully added {len(new_course_ids)} new courses",
+            "courses": result
+        })
+        
+    except Exception as e:
+        print(f"Error in scrape_more_courses: {str(e)}")
+        return jsonify({"error": f"Failed to scrape courses: {str(e)}"}), 500
+
 if __name__ == '__main__':
     # Check if this is the initial startup (not a reload)
     if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':

@@ -43,6 +43,7 @@ import {
   addBookmark,
   removeBookmark,
   getUserBookmarks,
+  scrapeMoreCourses,
   Course,
   Platform,
   Skill,
@@ -72,6 +73,7 @@ function DashboardPage() {
   const [selectedInstitution, setSelectedInstitution] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("default");
   const [bookmarks, setBookmarksState] = useState<number[]>([]);
+  const [loadingMoreCourses, setLoadingMoreCourses] = useState(false);
 
   useEffect(() => {
     // Fetch user name and initial bookmarks
@@ -177,7 +179,7 @@ function DashboardPage() {
       if (selectedSkill !== "all") {
         const skillId = parseInt(selectedSkill);
         filtered = filtered.filter((course) =>
-          course.skills?.some((skill) => skill.skill_id === skillId)
+          course.skills?.some((skill: Skill) => skill.skill_id === skillId)
         );
       }
       if (selectedInstitution !== "all") {
@@ -499,10 +501,100 @@ function DashboardPage() {
         ) : courses.length === 0 ? (
           // No results state
           <div className="col-span-full text-center py-12">
-            <p className="text-gray-500 mb-2">
+            <p className="text-gray-500 mb-3">
               No courses found matching your criteria.
             </p>
-            <p className="text-gray-400">Try adjusting your filters.</p>
+            {searchTerm.trim() !== "" ? (
+              <>
+                <p className="text-gray-500 mb-4">
+                  Our database doesn't currently have courses matching "{searchTerm}". 
+                  <br />Click below to search for courses online!
+                </p>
+                <Button 
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium py-2 px-6 rounded-lg shadow-md transition duration-150 ease-in-out"
+                  onClick={async () => {
+                    try {
+                      setLoadingMoreCourses(true);
+                      console.log("Scraping courses for search term:", searchTerm);
+                      
+                      // Call the API to scrape more courses
+                      const result = await scrapeMoreCourses(searchTerm, 10, 5);
+                      
+                      if (result.courses && result.courses.length > 0) {
+                        // Add new courses to both state arrays
+                        setAllCourses(prev => [...prev, ...result.courses]);
+                        
+                        // Apply current filters to the new courses
+                        let newFilteredCourses = [...result.courses];
+                        
+                        // Apply difficulty filter if selected
+                        if (selectedDifficulty !== "all") {
+                          newFilteredCourses = newFilteredCourses.filter(
+                            course => course.difficulty === selectedDifficulty
+                          );
+                        }
+                        
+                        // Apply platform filter if selected
+                        if (selectedPlatform !== "all") {
+                          const platformId = parseInt(selectedPlatform);
+                          newFilteredCourses = newFilteredCourses.filter(
+                            course => course.platform.platform_id === platformId
+                          );
+                        }
+                        
+                        // Apply institution filter if selected
+                        if (selectedInstitution !== "all") {
+                          const institutionId = parseInt(selectedInstitution);
+                          newFilteredCourses = newFilteredCourses.filter(
+                            course => course.institution?.institution_id === institutionId
+                          );
+                        }
+                        
+                        // Apply skill filter if selected
+                        if (selectedSkill !== "all") {
+                          const skillId = parseInt(selectedSkill);
+                          newFilteredCourses = newFilteredCourses.filter(
+                            course => course.skills?.some((skill: Skill) => skill.skill_id === skillId)
+                          );
+                        }
+                        
+                        // Add filtered new courses to current courses
+                        setCourses(prev => [...prev, ...newFilteredCourses]);
+                        
+                        // Show success toast/notification
+                        const displayCount = newFilteredCourses.length;
+                        const totalCount = result.courses.length;
+                        
+                        if (displayCount === totalCount) {
+                          alert(`Added ${displayCount} new courses!`);
+                        } else {
+                          alert(`Added ${displayCount} new courses matching your filters! (${totalCount - displayCount} were filtered out)`);
+                        }
+                      } else {
+                        alert("No courses found online. Try a different search term.");
+                      }
+                    } catch (error) {
+                      console.error("Failed to load courses:", error);
+                      alert("Failed to search for courses online. Please try again later.");
+                    } finally {
+                      setLoadingMoreCourses(false);
+                    }
+                  }}
+                  disabled={loadingMoreCourses}
+                >
+                  {loadingMoreCourses ? (
+                    <span className="flex items-center gap-2">
+                      <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                      Searching for courses online...
+                    </span>
+                  ) : (
+                    "Find Courses Online"
+                  )}
+                </Button>
+              </>
+            ) : (
+              <p className="text-gray-400">Try adjusting your filters or enter a search term.</p>
+            )}
           </div>
         ) : (
           // Display actual courses
@@ -641,6 +733,95 @@ function DashboardPage() {
           })
         )}
       </div>
+
+      {/* Load More Courses Button */}
+      {courses.length > 0 && !loading && !error && searchTerm.trim() !== "" && (
+        <div className="flex justify-center mt-8">
+          <Button 
+            className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium py-2 px-6 rounded-lg shadow-md transition duration-150 ease-in-out"
+            onClick={async () => {
+              try {
+                setLoadingMoreCourses(true);
+                console.log("Scraping more courses for search term:", searchTerm);
+                
+                // Call the API to scrape more courses
+                // Initial batch size of 10, with a minimum of 5 new courses
+                const result = await scrapeMoreCourses(searchTerm, 10, 5);
+                
+                if (result.courses && result.courses.length > 0) {
+                  // Add new courses to both state arrays
+                  setAllCourses(prev => [...prev, ...result.courses]);
+                  
+                  // Apply current filters to the new courses
+                  let newFilteredCourses = [...result.courses];
+                  
+                  // Apply difficulty filter if selected
+                  if (selectedDifficulty !== "all") {
+                    newFilteredCourses = newFilteredCourses.filter(
+                      course => course.difficulty === selectedDifficulty
+                    );
+                  }
+                  
+                  // Apply platform filter if selected
+                  if (selectedPlatform !== "all") {
+                    const platformId = parseInt(selectedPlatform);
+                    newFilteredCourses = newFilteredCourses.filter(
+                      course => course.platform.platform_id === platformId
+                    );
+                  }
+                  
+                  // Apply institution filter if selected
+                  if (selectedInstitution !== "all") {
+                    const institutionId = parseInt(selectedInstitution);
+                    newFilteredCourses = newFilteredCourses.filter(
+                      course => course.institution?.institution_id === institutionId
+                    );
+                  }
+                  
+                  // Apply skill filter if selected
+                  if (selectedSkill !== "all") {
+                    const skillId = parseInt(selectedSkill);
+                    newFilteredCourses = newFilteredCourses.filter(
+                      course => course.skills?.some((skill: Skill) => skill.skill_id === skillId)
+                    );
+                  }
+                  
+                  // Add filtered new courses to current courses
+                  setCourses(prev => [...prev, ...newFilteredCourses]);
+                  
+                  // Show success toast/notification instead of alert
+                  const displayCount = newFilteredCourses.length;
+                  const totalCount = result.courses.length;
+                  
+                  if (displayCount === totalCount) {
+                    alert(`Added ${displayCount} new courses!`);
+                  } else {
+                    alert(`Added ${displayCount} new courses matching your filters! (${totalCount - displayCount} were filtered out)`);
+                  }
+                } else {
+                  alert("No new courses found. Try a different search term.");
+                }
+              } catch (error) {
+                console.error("Failed to load more courses:", error);
+                alert("Failed to load more courses. Please try again later.");
+              } finally {
+                setLoadingMoreCourses(false);
+              }
+            }}
+            disabled={loadingMoreCourses}
+          >
+            {loadingMoreCourses ? (
+              <span className="flex items-center gap-2">
+                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                Searching for new courses...
+              </span>
+            ) : (
+              "Load More Courses"
+            )}
+          </Button>
+        </div>
+      )}
+
     </div>
   );
 }

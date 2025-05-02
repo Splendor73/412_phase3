@@ -97,6 +97,40 @@ export async function getCourses(filters?: FilterParams) {
 }
 
 /**
+ * Scrape and add more courses based on a search query
+ * @param query Search query to scrape courses for
+ * @param maxCourses Maximum number of courses to scrape in each batch (default: 10)
+ * @param minNewCourses Minimum number of new courses to find (default: 5)
+ * @returns Promise with newly added course data
+ */
+export async function scrapeMoreCourses(query: string, maxCourses: number = 10, minNewCourses: number = 5) {
+  try {
+    // Build URL with all parameters
+    const params = new URLSearchParams({
+      query,
+      max_courses: maxCourses.toString(),
+      min_new_courses: minNewCourses.toString()
+    });
+    
+    const url = `${API_BASE_URL}/scrape-courses?${params.toString()}`;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log("Scraped courses result:", data);
+    
+    return data;
+  } catch (error) {
+    console.error('Error scraping courses:', error);
+    throw error;
+  }
+}
+
+/**
  * Fetch a specific course by ID
  * @param courseId - The ID of the course to fetch
  * @returns Promise with course data
