@@ -48,7 +48,7 @@ logs/
 # Configuration with sensitive information
 config.ini
 secret_config.py
-db_config.py
+backend/db_config.py
 
 # Testing
 .pytest_cache/
@@ -59,3 +59,11 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *,cover
+
+# Ignore scraped data directory
+/data/
+*.json
+
+# Chrome driver files
+chromedriver
+chromedriver.exe

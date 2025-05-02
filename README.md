@@ -13,8 +13,8 @@ This step-by-step guide will help you set up and run the application on your loc
 
 ## Step 1: Clone the Repository
 ```bash
-git https://github.com/Splendor73/412_phase3.git
-cd course-recommendation-platform
+git clone https://github.com/Splendor73/412_phase3.git
+cd 412_phase3
 ```
 
 ## Step 2: Set Up the Database
@@ -105,7 +105,7 @@ You should see output similar to:
 
 2. Navigate to the project's frontend directory:
 ```bash
-cd course-recommendation-platform/frontend
+cd ../frontend
 ```
 
 3. Install the required npm packages:
@@ -222,7 +222,7 @@ A platform for ASU students to discover and bookmark online courses based on the
 ## Project Structure
 
 ```
-/
+412_phase3/
 ├── backend/               # Flask backend
 │   ├── application.py     # Main server file
 │   ├── auth.py            # Authentication endpoints
@@ -248,8 +248,8 @@ Follow these steps to get the project running on your local machine after clonin
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/course-recommendation-platform.git
-cd course-recommendation-platform
+git clone https://github.com/Splendor73/412_phase3.git
+cd 412_phase3
 ```
 
 ### 2. Database Setup
@@ -303,13 +303,7 @@ cd course-recommendation-platform
      ```bash
      chmod +x ../chromedriver-mac-arm64/chromedriver
      ```
-   - For Windows/Linux or Intel Mac:
-     - The WebDriver Manager will handle this automatically
-     - If you encounter issues, you can manually download ChromeDriver:
-       - Visit https://sites.google.com/chromium.org/driver/
-       - Download the version matching your Chrome browser
-       - Place it in the project root directory
-       - Make it executable: `chmod +x chromedriver`
+   - For other systems, the WebDriver Manager will handle this automatically
 
 6. Install Chrome browser if not already installed:
    - Download from https://www.google.com/chrome/
@@ -327,7 +321,7 @@ cd course-recommendation-platform
 1. Open a new terminal window/tab
 2. Navigate to the frontend directory:
    ```bash
-   cd frontend
+   cd ../frontend
    ```
 
 3. Install dependencies:
