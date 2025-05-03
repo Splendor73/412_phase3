@@ -20,7 +20,7 @@ cd 412_phase3
 ## Step 2: Set Up the Database
 1. Navigate into the [database_setup](./database_setup/) directory:
 ```bash
-   cd database_setup
+cd database_setup
 ```
 
 2. Start PostgreSQL and create a new database. Note down your PostgreSQL username and password.
