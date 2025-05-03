@@ -4,44 +4,40 @@ import re
 from flask import Blueprint, request, jsonify
 from db_config import get_db_connection
 
-# Create authentication blueprint
 auth_bp = Blueprint('auth', __name__)
 
+# Hash password
 def hash_password(password, salt=None):
     """Hash a password with a salt for safe storage"""
     if salt is None:
-        salt = secrets.token_hex(16)  # Generate a new salt for new passwords
+        salt = secrets.token_hex(16)
     
-    # Combine password and salt, then hash
     hash_obj = hashlib.sha256((password + salt).encode())
     password_hash = hash_obj.hexdigest()
     
-    # Return the combined salt:hash format for storage
     return f"{salt}:{password_hash}", salt
 
+# Verify password
 def verify_password(stored_password, input_password):
-    """Verify a password against a stored password hash"""
-    # Extract salt from stored password
+    """Verify a password against stored password hash"""
     try:
         salt, stored_hash = stored_password.split(":", 1)
-        
-        # Hash the input password with the extracted salt
         input_password_hash = hashlib.sha256((input_password + salt).encode()).hexdigest()
         
-        # Compare the hashes
         return input_password_hash == stored_hash
     except ValueError:
-        # If the stored_password doesn't contain a :, it's in an old format
         return False
 
+# Check if email format is valid
 def is_valid_email(email):
     """Check if email format is valid"""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern, email) is not None
 
+# Check if password is stong
 def is_strong_password(password):
     """Check if password meets strength requirements"""
-    # At least 8 characters, with at least one number and one special character
+    # At least 8 characters long, has at least one number and one special character
     if len(password) < 8:
         return False, "Password must be at least 8 characters."
     
@@ -53,7 +49,7 @@ def is_strong_password(password):
     
     return True, "Password is strong."
 
-# Routes
+# Register a new user
 @auth_bp.route('/register', methods=['POST'])
 def register():
     """Register a new user"""
@@ -70,15 +66,13 @@ def register():
             print(f"Missing required fields: {missing}")
             return jsonify({"status": "error", "message": f"Missing required fields: {missing}"}), 400
         
-        # Extract data
         first_name = data['firstName']
         last_name = data['lastName']
         email = data['email']
         password = data['password']
-        user_type = data['type']  # 'student' or 'admin'
+        user_type = data['type']
         skill_ids = data.get('skillIds') if user_type == 'student' else None
         
-        # Basic validation
         if not is_valid_email(email):
             print(f"Invalid email format: {email}")
             return jsonify({"status": "error", "message": "Invalid email format"}), 400
@@ -88,7 +82,6 @@ def register():
             print(f"Password validation failed: {pwd_msg}")
             return jsonify({"status": "error", "message": pwd_msg}), 400
             
-        # Additional fields based on user type
         major = data.get('major') if user_type == 'student' else None
         skill_level = data.get('skillLevel') if user_type == 'student' else None
         department = data.get('department') if user_type == 'admin' else None
@@ -96,7 +89,6 @@ def register():
         
         print(f"Processing registration for {user_type}: {first_name} {last_name} <{email}>")
         
-        # Hash password with salt - stored as "salt:hash"
         hashed_password, _ = hash_password(password)
         
         # Connect to database
@@ -119,7 +111,7 @@ def register():
         cur.execute("BEGIN")
         
         try:
-            # Insert into user table (password now contains salt:hash)
+            # Insert into user table
             cur.execute(
                 "INSERT INTO \"user\" (first_name, last_name, email, password, type) VALUES (%s, %s, %s, %s, %s) RETURNING user_id",
                 (first_name, last_name, email, hashed_password, user_type)
@@ -127,14 +119,14 @@ def register():
             user_id = cur.fetchone()[0]
             print(f"Created new user with ID: {user_id}")
             
-            # Insert additional data based on user type
+            # Insert additional data
             if user_type == 'student':
                 cur.execute(
                     "INSERT INTO student (user_id, major, skill_level) VALUES (%s, %s, %s)",
                     (user_id, major, skill_level)
                 )
                 
-                # Process skills if any are provided
+                # Process skills
                 if skill_ids:
                     for skill_id in skill_ids:
                         if not skill_id:
@@ -174,7 +166,7 @@ def register():
             return jsonify({"status": "error", "message": f"Registration failed: {str(e)}"}), 500
             
     except Exception as e:
-        # Make sure we rollback if anything fails
+        # Rollback in case of error
         if conn and cur:
             cur.execute("ROLLBACK")
         print(f"Unhandled error during registration: {str(e)}")
@@ -183,15 +175,17 @@ def register():
         return jsonify({"status": "error", "message": f"Server error: {str(e)}"}), 500
         
     finally:
-        # Close database resources
+        # Close database connections
         if cur:
             cur.close()
         if conn:
             conn.close()
 
+
+# User login
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """Authenticate a user"""
+    """Authenticate user"""
     try:
         data = request.json
         
@@ -222,7 +216,6 @@ def login():
             conn.close()
             return jsonify({"status": "error", "message": "Invalid email or password"}), 401
         
-        # Extract user data
         user_id, first_name, last_name, user_email, stored_password, user_type = user
         
         # Verify password
@@ -231,7 +224,7 @@ def login():
             conn.close()
             return jsonify({"status": "error", "message": "Invalid email or password"}), 401
         
-        # Get additional user info based on type
+        # Get additional user info
         additional_info = {}
         if user_type == 'student':
             cur.execute(

@@ -14,11 +14,11 @@ def get_db_connection():
     """Get a database connection"""
     try:
         conn = psycopg2.connect(**DB_CONFIG)
-        conn.autocommit = True  # Set autocommit to True by default
-        print(f"✅ Successfully connected to the {DB_CONFIG['dbname']} database!")
+        conn.autocommit = True
+        print(f"Connected to the database: {DB_CONFIG['dbname']}")
         return conn
     except Error as e:
-        print(f"❌ Database connection failed: {str(e)}")
+        print(f"Error connecting to the database: {str(e)}")
         return None
 
 def test_connection():
@@ -33,11 +33,11 @@ def test_connection():
             table_names = [table[0] for table in tables]
             cursor.close()
             
-            print(f"📊 The database contains {len(tables)} tables: {', '.join(table_names)}")
+            print(f"Database has {len(tables)} tables: {', '.join(table_names)}")
             return True, table_names
         return False, []
     except Error as e:
-        print(f"❌ Database connection failed: {str(e)}")
+        print(f"Error connecting to the database: {str(e)}")
         return False, []
     finally:
         if conn:
@@ -154,10 +154,10 @@ def init_db():
             ''')
             
             conn.commit()
-            print("✅ Database tables initialized successfully!")
+            print("Database tables initialized")
             return True
     except Error as e:
-        print(f"❌ Error initializing database: {str(e)}")
+        print(f"Error initializing database: {str(e)}")
         if conn:
             conn.rollback()
         return False

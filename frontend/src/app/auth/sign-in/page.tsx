@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useRouter } from "next/navigation"; // Import useRouter
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -26,7 +26,7 @@ const formSchema = z.object({
 });
 
 function SignInPage() {
-  const router = useRouter(); // Initialize router
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -38,10 +38,6 @@ function SignInPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      // Show loading state
-      console.log("Signing in...");
-      
-      // Call the backend API
       const response = await fetch(API_BASE_URL + '/auth/login', {
         method: 'POST',
         headers: {
@@ -57,7 +53,6 @@ function SignInPage() {
       
       if (!response.ok) {
         console.error("Login failed:", data.message);
-        // You could set an error state here
         form.setError("root", { 
           message: data.message || "Login failed. Please check your credentials."
         });
@@ -67,7 +62,6 @@ function SignInPage() {
         return;
       }
       
-      // Success - store user data in localStorage
       const user = data.user;
       if (typeof window !== "undefined") {
         localStorage.setItem("userFirstName", user.firstName);
@@ -79,20 +73,16 @@ function SignInPage() {
         localStorage.setItem("userLevel", user.skillLevel);
       }
       
-      console.log("Login successful:", user);
       toast.success("Login successful", {
         description: `Welcome back, ${user.firstName}!`
       });
       
-      // Check if there's a redirect destination stored in sessionStorage
+      // Redirect to the dashboard
       const redirectPath = sessionStorage.getItem('redirectAfterLogin');
       if (redirectPath) {
-        // Clear it from storage
         sessionStorage.removeItem('redirectAfterLogin');
-        // Navigate to that path
         router.push(redirectPath);
       } else {
-        // Navigate to the dashboard on success
         router.push("/dashboard");
       }
     } catch (error) {
@@ -122,7 +112,7 @@ function SignInPage() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="m@example.com" {...field} />
+                      <Input placeholder="user@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

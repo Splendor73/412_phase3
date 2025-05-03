@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getUserDetails, updateUserDetails, UserProfile, skillLevels, majors } from '@/lib/api'; // Assuming majors are exported from api.ts
-import { toast } from 'sonner'; // Use sonner for toasts
+import { getUserDetails, updateUserDetails, UserProfile, skillLevels, majors } from '@/lib/api';
+import { toast } from 'sonner';
 import { Toaster } from 'sonner';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -19,16 +19,14 @@ function ProfilePage() {
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isEditing, setIsEditing] = useState(false); // State to toggle edit mode
+    const [isEditing, setIsEditing] = useState(false);
 
-    // Form state
     const [formData, setFormData] = useState<Partial<UserProfile>>({});
 
     useEffect(() => {
         const fetchProfile = async () => {
             const userId = localStorage.getItem('userId');
             if (!userId) {
-                // This should be handled by the withAuth HOC, but we'll keep as a fallback
                 setError('User not logged in');
                 setLoading(false);
                 return;
@@ -38,12 +36,12 @@ function ProfilePage() {
                 setLoading(true);
                 const profileData = await getUserDetails(parseInt(userId));
                 setUserProfile(profileData);
-                setFormData({ // Initialize form data
+                setFormData({
                     first_name: profileData.first_name,
                     last_name: profileData.last_name,
                     email: profileData.email,
-                    level: profileData.level || 'none', // Use 'none' for null values
-                    major: profileData.major || 'none', // Use 'none' for null values
+                    level: profileData.level || 'none',
+                    major: profileData.major || 'none',
                 });
                 setError(null);
             } catch (err: any) {
@@ -55,7 +53,7 @@ function ProfilePage() {
         };
 
         fetchProfile();
-    }, [router]); // Dependency on router
+    }, [router]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -63,7 +61,6 @@ function ProfilePage() {
     };
 
     const handleSelectChange = (name: keyof UserProfile) => (value: string) => {
-        // Set to null if the value is empty string (our "Not Set" option), otherwise use the value
         setFormData(prev => ({ ...prev, [name]: value === 'none' ? null : value }));
     };
 
@@ -71,7 +68,6 @@ function ProfilePage() {
         e.preventDefault();
         if (!userProfile) return;
 
-        // Basic validation (optional, add more as needed)
         if (!formData.first_name || !formData.last_name || !formData.email) {
             toast.error("Validation Error", {
                 description: "First Name, Last Name, and Email cannot be empty.",
@@ -81,47 +77,41 @@ function ProfilePage() {
 
         setLoading(true);
         try {
-            // Only send fields that have actually changed
             const changes: Partial<UserProfile> = {};
 
-            // Define fields that can be updated
             const updatableFields: (keyof UserProfile)[] = ['first_name', 'last_name', 'email', 'level', 'major'];
 
             updatableFields.forEach(field => {
-                // Check if the value is different from the original profile OR if the original was null/undefined and now has a value
                 if (formData[field] !== userProfile[field] && !(formData[field] === '' && userProfile[field] == null)) {
-                    // Use type assertion as a last resort to satisfy the persistent linter error
                     changes[field] = formData[field] as any;
                 }
             });
 
             if (Object.keys(changes).length === 0) {
                 toast("No Changes", { description: "No information was modified." });
-                setIsEditing(false); // Exit edit mode
+                setIsEditing(false);
                 setLoading(false);
                 return;
             }
 
             const result = await updateUserDetails(userProfile.user_id, changes);
 
-            // Update local state and potentially localStorage if needed
-            setUserProfile(result.user); // Update displayed profile
-             setFormData({ // Reset form state to reflect saved data
+            setUserProfile(result.user);
+            setFormData({
                 first_name: result.user.first_name,
                 last_name: result.user.last_name,
                 email: result.user.email,
                 level: result.user.level || 'none',
                 major: result.user.major || 'none',
              });
-             // Update localStorage if these values are used elsewhere (like dashboard header)
+
              localStorage.setItem('userFirstName', result.user.first_name);
              if(result.user.level) localStorage.setItem('userLevel', result.user.level); else localStorage.removeItem('userLevel');
-             // Add major update if needed
 
             toast.success("Profile Updated", {
                 description: "Your profile information has been saved.",
             });
-            setIsEditing(false); // Exit edit mode
+            setIsEditing(false);
 
         } catch (err: any) {
             console.error("Error updating profile:", err);
@@ -134,7 +124,6 @@ function ProfilePage() {
     };
 
     const handleCancelEdit = () => {
-        // Reset form data to original profile data
         if (userProfile) {
              setFormData({
                 first_name: userProfile.first_name,
@@ -147,7 +136,7 @@ function ProfilePage() {
         setIsEditing(false);
     };
 
-    if (loading && !userProfile) { // Show loading indicator only on initial load
+    if (loading && !userProfile) {
         return <div className="flex justify-center items-center min-h-screen">Loading profile...</div>;
     }
 
@@ -162,7 +151,6 @@ function ProfilePage() {
         return <div className="flex justify-center items-center min-h-screen">No profile data found.</div>;
     }
 
-    // Helper to display profile data or 'Not Set'
     const displayValue = (value: string | null | undefined) => value || <span className='text-muted-foreground italic'>Not Set</span>;
 
 
@@ -179,7 +167,6 @@ function ProfilePage() {
                 </CardHeader>
                 <form onSubmit={handleSaveChanges}>
                     <CardContent className="space-y-6">
-                        {/* Display Mode */}
                         {!isEditing && (
                             <div className="space-y-4">
                                 <div className="grid grid-cols-3 gap-4 items-center">
@@ -200,13 +187,11 @@ function ProfilePage() {
                                 </div>
                                 <div className="grid grid-cols-3 gap-4 items-center">
                                     <Label className="text-right font-semibold">Major:</Label>
-                                    {/* Assume majors are available */}
                                      <span className="col-span-2">{displayValue(userProfile.major)}</span>
                                 </div>
                             </div>
                         )}
 
-                        {/* Edit Mode */}
                         {isEditing && (
                             <div className="space-y-4">
                                 <div className="grid grid-cols-3 gap-4 items-center">
@@ -237,14 +222,12 @@ function ProfilePage() {
                                 </div>
                                  <div className="grid grid-cols-3 gap-4 items-center">
                                      <Label htmlFor="major" className="text-right">Major</Label>
-                                     {/* Assume majors are available */}
                                       <Select name="major" value={formData.major || ''} onValueChange={handleSelectChange('major')}>
                                         <SelectTrigger className="col-span-2">
                                             <SelectValue placeholder="Select major" />
                                         </SelectTrigger>
                                         <SelectContent>
                                              <SelectItem value="none">Not Set</SelectItem>
-                                             {/* Ideally fetch majors or have them predefined */}
                                              {majors.map(major => (
                                                 <SelectItem key={major} value={major}>{major}</SelectItem>
                                              ))}
@@ -272,5 +255,4 @@ function ProfilePage() {
     );
 }
 
-// Export the component with auth protection
 export default withAuth(ProfilePage); 

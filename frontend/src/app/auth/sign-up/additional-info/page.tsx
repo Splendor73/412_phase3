@@ -120,8 +120,6 @@ export default function AdditionalInfoPage() {
     }
 
     try {
-      console.log("Completing sign up...");
-
       const selectedSkillLabels = values.skills.map((skillId: string) => {
         const skill = allSkills.find(s => s.id === skillId);
         return skill ? skill.label : skillId;

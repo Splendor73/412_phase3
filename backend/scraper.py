@@ -58,20 +58,19 @@ def scrape_courses(search_keyword, max_courses=10):
     """
     print(f"Starting course scraping for keyword: {search_keyword}")
     
-    # 1) Configure Chrome browser with headless mode for server deployment
-    # These options make Chrome run without displaying a UI window
+    # 1) Configure Chrome browser with headless mode
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
-    options.add_argument('--no-sandbox')           # Required for running in Docker/some Linux environments
-    options.add_argument('--disable-dev-shm-usage')  # Helps prevent browser crashes
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
     
-    # Initialize Chrome driver - handling Mac with Apple Silicon specifically
+    # Initialize Chrome driver
     is_mac = platform.system() == 'Darwin'
     is_arm = platform.machine() == 'arm64'
     
     try:
         if is_mac and is_arm:
-            # For Mac with Apple Silicon (M1/M2)
+            # For Mac with Apple Silicon
             print("Detected Mac with Apple Silicon")
             
             # Use the specific chromedriver we downloaded that matches Chrome 135.0.7049.115
@@ -232,10 +231,10 @@ def scrape_courses(search_keyword, max_courses=10):
                 courses_data.append(course_data)
                 
             except Exception as e:
-                print(f"  ⚠️ scrape warning for {link}: {e}")
+                print(f"crape warning for {link}: {e}")
                 # Continue with next course even if this one failed
 
-        print(f"✅ Successfully scraped {len(courses_data)} courses")
+        print(f"Successfully scraped {len(courses_data)} courses")
         return courses_data
 
     finally:
@@ -263,7 +262,7 @@ def save_to_json(data, search_keyword):
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     
-    print(f"✅ Scraped data saved to: {filename}")
+    print(f"Scraped data saved to: {filename}")
     return filename
 
 def store_scraped_courses(courses_data):
@@ -490,10 +489,10 @@ def scrape_and_store(keyword, max_courses=10, min_new_courses=5):
 
 # This block only runs when the script is executed directly (not imported)
 if __name__ == "__main__":
-    # For manual testing - get input from command line
+    # Manual testing: input from command line
     keyword = input("Enter search keyword: ")
     max_courses = int(input("Enter maximum number of courses to scrape in each batch (default 10): ") or "10")
     min_new_courses = int(input("Enter minimum number of new courses to add to the database (default 5): ") or "5")
     
-    # Run the scraper with provided inputs
+    # Run the scraper
     scrape_and_store(keyword, max_courses, min_new_courses) 

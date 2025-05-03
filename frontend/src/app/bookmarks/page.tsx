@@ -47,7 +47,7 @@ export default function BookmarksPage() {
       }
 
       await removeBookmark(parseInt(userId), courseId);
-      // Update state to reflect removal
+      
       setBookmarkedCourses(prevCourses => 
         prevCourses.filter(course => course.course_id !== courseId)
       );
@@ -81,7 +81,6 @@ export default function BookmarksPage() {
         </Button>
       </header>
 
-      {/* Bookmarked Courses Grid */}
       {bookmarkedCourses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {bookmarkedCourses.map((course) => (

@@ -1,5 +1,3 @@
-// API utility functions for interacting with the backend
-
 export const API_BASE_URL = 'http://localhost:5050/api';
 
 interface FilterParams {
@@ -105,7 +103,6 @@ export async function getCourses(filters?: FilterParams) {
  */
 export async function scrapeMoreCourses(query: string, maxCourses: number = 10, minNewCourses: number = 5) {
   try {
-    // Build URL with all parameters
     const params = new URLSearchParams({
       query,
       max_courses: maxCourses.toString(),
@@ -296,8 +293,6 @@ export async function getInstitutions() {
   }
 }
 
-// --- User Profile Functions ---
-
 /**
  * User Profile data structure
  */
@@ -306,8 +301,8 @@ export interface UserProfile {
   first_name: string;
   last_name: string;
   email: string;
-  level?: string | null; // Optional fields
-  major?: string | null; // Optional fields
+  level?: string | null;
+  major?: string | null;
 }
 
 /**
@@ -321,7 +316,7 @@ export async function getUserDetails(userId: number): Promise<UserProfile> {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`);
     
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({})); // Try to get error details
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(`Error: ${response.status} - ${errorData.error || 'Failed to fetch user details'}`);
     }
     

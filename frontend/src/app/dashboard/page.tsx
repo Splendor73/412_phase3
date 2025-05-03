@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge"; // For displaying difficulty/major
+import { Badge } from "@/components/ui/badge";
 import {
   Search,
   Filter,
@@ -34,8 +34,8 @@ import {
   RotateCcw,
   User,
   LogOut,
-} from "lucide-react"; // Icons
-import Link from "next/link"; // Add Link import
+} from "lucide-react";
+import Link from "next/link";
 import {
   getCourses,
   getPlatforms,
@@ -49,24 +49,21 @@ import {
   Skill,
   skillLevels,
   Institution,
-} from "@/lib/api"; // Import the API functions
+} from "@/lib/api";
 import { withAuth } from "@/components/auth/auth-provider";
-
-// --- Component ---
 
 function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState<string>("User");
   const [searchTerm, setSearchTerm] = useState("");
-  const [allCourses, setAllCourses] = useState<Course[]>([]); // Store all courses initially
-  const [courses, setCourses] = useState<Course[]>([]); // Filtered/displayed courses
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
-  const [availableSkills, setAvailableSkills] = useState<Skill[]>([]); // Changed state name
+  const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filter States
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
   const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
   const [selectedSkill, setSelectedSkill] = useState<string>("all");
@@ -76,7 +73,6 @@ function DashboardPage() {
   const [loadingMoreCourses, setLoadingMoreCourses] = useState(false);
 
   useEffect(() => {
-    // Fetch user name and initial bookmarks
     const storedName = localStorage.getItem("userFirstName");
     const userId = localStorage.getItem("userId");
     const userLevel = localStorage.getItem("userLevel");
@@ -87,39 +83,34 @@ function DashboardPage() {
       console.warn("User name not found in localStorage.");
     }
 
-    // --- Pre-fill filters from localStorage ---
     if (userLevel && skillLevels.includes(userLevel as any)) {
-      // Check if level is valid
-      // setSelectedDifficulty(userLevel);
+      setSelectedDifficulty(userLevel);
     }
-    // --- End Pre-fill ---
 
-    // Load initial data
     const fetchInitialData = async () => {
       try {
         setLoading(true);
 
-        // Fetch courses, platforms, and institutions
         const [
           coursesData,
           platformsData,
           institutionsData,
         ] = await Promise.all([
-          getCourses(), // Fetch all courses initially without filters
+          getCourses(),
           getPlatforms(),
-          getInstitutions(), // Fetch institutions
+          getInstitutions(),
         ]);
 
-        setAllCourses(coursesData); // Store all courses
-        setCourses(coursesData); // Set initial display courses
+        setAllCourses(coursesData);
+        setCourses(coursesData);
         setPlatforms(platformsData);
-        setInstitutions(institutionsData); // Store institutions
+        setInstitutions(institutionsData);
 
-        console.log("Fetched Courses Data:", coursesData); // Log fetched data
+        console.log("Fetched Courses Data:", coursesData);
 
         const allSkills = coursesData.flatMap(
           (course: Course) => course.skills || []
-        ); // Add Course type
+        );
         const uniqueSkillsMap = new Map<number, Skill>();
         allSkills.forEach((skill: Skill) => {
           if (!uniqueSkillsMap.has(skill.skill_id)) {
@@ -127,9 +118,7 @@ function DashboardPage() {
           }
         });
         setAvailableSkills(Array.from(uniqueSkillsMap.values()));
-        // --- End Derivation ---
 
-        // Fetch bookmarks if user is logged in
         if (userId) {
           const bookmarkedCourses = await getUserBookmarks(parseInt(userId));
           setBookmarksState(
@@ -145,17 +134,14 @@ function DashboardPage() {
     };
 
     fetchInitialData();
-  }, []); // Run only once on mount
+  }, []);
 
-  // Update courses when filters change
   useEffect(() => {
-    // Skip filtering if loading initial data or if allCourses isn't populated yet
     if (loading || allCourses.length === 0) return;
 
     const applyFilters = () => {
-      let filtered = [...allCourses]; // Start with all courses
+      let filtered = [...allCourses];
 
-      // Apply filters locally
       if (searchTerm) {
         const lowerSearchTerm = searchTerm.toLowerCase();
         filtered = filtered.filter(
@@ -189,7 +175,6 @@ function DashboardPage() {
         );
       }
 
-      // Apply sorting locally
       switch (sortBy) {
         case "rating_desc":
           filtered.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
@@ -207,22 +192,18 @@ function DashboardPage() {
             (a, b) => (a.num_enrollments ?? 0) - (b.num_enrollments ?? 0)
           );
           break;
-        // Add more cases if needed (e.g., title, difficulty)
         default:
-          // Optional: default sort (e.g., by ID or title)
-          // filtered.sort((a, b) => a.course_id - b.course_id);
           break;
       }
 
       setCourses(filtered);
     };
 
-    // Debounce filter application
     const debounceTimeout = setTimeout(() => {
       applyFilters();
-    }, 300); // 300ms debounce
+    }, 300);
 
-    return () => clearTimeout(debounceTimeout); // Cleanup timeout
+    return () => clearTimeout(debounceTimeout);
   }, [
     searchTerm,
     selectedDifficulty,
@@ -232,9 +213,8 @@ function DashboardPage() {
     sortBy,
     allCourses,
     loading,
-  ]); // Dependencies include filters and allCourses
+  ]);
 
-  // Handler to reset all filters and sorting
   const handleResetFilters = () => {
     setSearchTerm("");
     setSelectedDifficulty("all");
@@ -244,33 +224,29 @@ function DashboardPage() {
     setSortBy("default");
   };
 
-  // Handler for the "Picked for You" button
   const handlePickedForYou = () => {
     const userLevel = localStorage.getItem("userLevel");
 
-    // Reset other filters to ensure a clean slate
     setSearchTerm("");
     setSelectedPlatform("all");
     setSelectedSkill("all");
     setSelectedInstitution("all");
 
-    // Apply user-specific filters and sorting
     if (userLevel && skillLevels.includes(userLevel as any)) {
       setSelectedDifficulty(userLevel);
     } else {
-      setSelectedDifficulty("all"); // Default if no valid level
+      setSelectedDifficulty("all");
       console.warn(
         "User level not found or invalid in localStorage, defaulting difficulty to 'all'."
       );
     }
 
-    setSortBy("rating_desc"); // Sort by best rating
+    setSortBy("rating_desc");
   };
 
   const handleSignOut = () => {
     console.log("Signing out...");
     if (typeof window !== "undefined") {
-      // Clear all authentication-related data
       localStorage.removeItem("userFirstName");
       localStorage.removeItem("userLastName");
       localStorage.removeItem("userEmail");
@@ -282,7 +258,6 @@ function DashboardPage() {
     router.push("/auth/sign-in");
   };
 
-  // Bookmark Toggle Handler
   const toggleBookmark = async (courseId: number) => {
     try {
       const userId = localStorage.getItem("userId");
@@ -304,7 +279,6 @@ function DashboardPage() {
         await addBookmark(parseInt(userId), courseId);
       }
 
-      // Update local state to re-render UI
       setBookmarksState((prev) => {
         const newState = isCurrentlyBookmarked
           ? prev.filter((id) => id !== courseId)
@@ -319,17 +293,14 @@ function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
-      {/* Header */}
       <header className="flex justify-between items-center mb-6 gap-4">
         <h1 className="text-2xl font-semibold">Hi, {userName}!</h1>
         <div className="flex gap-2">
-          {/* Bookmarks Button */}
           <Link href="/bookmarks">
             <Button variant="outline">
               <Bookmark className="mr-2 h-4 w-4" /> Bookmarks
             </Button>
           </Link>
-          {/* Profile Button */}
           <Link href="/profile">
             <Button variant="outline">
               <User className="mr-2 h-4 w-4" />
@@ -343,9 +314,7 @@ function DashboardPage() {
         </div>
       </header>
 
-      {/* Search and Filters */}
       <div className="mb-8 space-y-4">
-        {/* Search Bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
@@ -356,7 +325,6 @@ function DashboardPage() {
           />
         </div>
 
-        {/* "Picked for You" Button Row */}
         <div className="flex flex-wrap gap-3 items-center mt-4">
           <Button
               onClick={handlePickedForYou}
@@ -365,7 +333,6 @@ function DashboardPage() {
               <Sparkles className="h-4 w-4" />
               Picked for You
           </Button>
-          {/* Reset Button */}
           <Button
             onClick={handleResetFilters}
             variant="outline"
@@ -376,13 +343,10 @@ function DashboardPage() {
           </Button>
         </div>
 
-        {/* Filters Row */}
         <div className="flex flex-wrap gap-3 items-center mt-4">
           {" "}
-          {/* Adjusted margin */}
           <Filter className="h-5 w-5 text-muted-foreground mr-1" />
           <span className="text-sm font-medium mr-2">Filters:</span>
-          {/* Difficulty Filter */}
           <Select
             value={selectedDifficulty}
             onValueChange={setSelectedDifficulty}
@@ -399,7 +363,6 @@ function DashboardPage() {
               ))}
             </SelectContent>
           </Select>
-          {/* Platform Filter */}
           <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
             <SelectTrigger className="w-auto text-sm h-9">
               <SelectValue placeholder="Platform" />
@@ -416,7 +379,6 @@ function DashboardPage() {
               ))}
             </SelectContent>
           </Select>
-          {/* Institution Filter */}
           <Select
             value={selectedInstitution}
             onValueChange={setSelectedInstitution}
@@ -436,7 +398,6 @@ function DashboardPage() {
               ))}
             </SelectContent>
           </Select>
-          {/* Skill Filter */}
           <Select value={selectedSkill} onValueChange={setSelectedSkill}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Select Skill" />
@@ -454,8 +415,6 @@ function DashboardPage() {
             </SelectContent>
           </Select>
         </div>
-
-        {/* Sorting Row */}
         <div className="flex flex-wrap gap-3 items-center mt-3">
           <ArrowUpDown className="h-5 w-5 text-muted-foreground mr-1" />
           <span className="text-sm font-medium mr-2">Sort by:</span>
@@ -477,11 +436,8 @@ function DashboardPage() {
           </Select>
         </div>
       </div>
-
-      {/* Course Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mt-8 gap-4">
         {loading ? (
-          // Loading state
           Array.from({ length: 6 }).map((_, i) => (
             <Card key={`skeleton-${i}`} className="animate-pulse">
               <CardHeader className="h-32 bg-gray-200 dark:bg-gray-800 rounded-t-lg"></CardHeader>
@@ -493,13 +449,11 @@ function DashboardPage() {
             </Card>
           ))
         ) : error ? (
-          // Error state
           <div className="col-span-full text-center py-12">
             <p className="text-red-500 mb-4">{error}</p>
             <Button onClick={() => window.location.reload()}>Retry</Button>
           </div>
         ) : courses.length === 0 ? (
-          // No results state
           <div className="col-span-full text-center py-12">
             <p className="text-gray-500 mb-3">
               No courses found matching your criteria.
@@ -521,20 +475,18 @@ function DashboardPage() {
                       const result = await scrapeMoreCourses(searchTerm, 10, 5);
                       
                       if (result.courses && result.courses.length > 0) {
-                        // Add new courses to both state arrays
+                        // Add new courses
                         setAllCourses(prev => [...prev, ...result.courses]);
                         
-                        // Apply current filters to the new courses
+                        // Apply current filters
                         let newFilteredCourses = [...result.courses];
-                        
-                        // Apply difficulty filter if selected
+
                         if (selectedDifficulty !== "all") {
                           newFilteredCourses = newFilteredCourses.filter(
                             course => course.difficulty === selectedDifficulty
                           );
                         }
                         
-                        // Apply platform filter if selected
                         if (selectedPlatform !== "all") {
                           const platformId = parseInt(selectedPlatform);
                           newFilteredCourses = newFilteredCourses.filter(
@@ -542,7 +494,6 @@ function DashboardPage() {
                           );
                         }
                         
-                        // Apply institution filter if selected
                         if (selectedInstitution !== "all") {
                           const institutionId = parseInt(selectedInstitution);
                           newFilteredCourses = newFilteredCourses.filter(
@@ -550,7 +501,6 @@ function DashboardPage() {
                           );
                         }
                         
-                        // Apply skill filter if selected
                         if (selectedSkill !== "all") {
                           const skillId = parseInt(selectedSkill);
                           newFilteredCourses = newFilteredCourses.filter(
@@ -558,10 +508,8 @@ function DashboardPage() {
                           );
                         }
                         
-                        // Add filtered new courses to current courses
                         setCourses(prev => [...prev, ...newFilteredCourses]);
                         
-                        // Show success toast/notification
                         const displayCount = newFilteredCourses.length;
                         const totalCount = result.courses.length;
                         
@@ -597,7 +545,6 @@ function DashboardPage() {
             )}
           </div>
         ) : (
-          // Display actual courses
           courses.map((course) => {
             const bookmarked = bookmarks.includes(course.course_id);
             return (
@@ -734,7 +681,6 @@ function DashboardPage() {
         )}
       </div>
 
-      {/* Load More Courses Button */}
       {courses.length > 0 && !loading && !error && searchTerm.trim() !== "" && (
         <div className="flex justify-center mt-8">
           <Button 
@@ -745,24 +691,21 @@ function DashboardPage() {
                 console.log("Scraping more courses for search term:", searchTerm);
                 
                 // Call the API to scrape more courses
-                // Initial batch size of 10, with a minimum of 5 new courses
                 const result = await scrapeMoreCourses(searchTerm, 10, 5);
                 
                 if (result.courses && result.courses.length > 0) {
-                  // Add new courses to both state arrays
+                  // Add new courses
                   setAllCourses(prev => [...prev, ...result.courses]);
                   
-                  // Apply current filters to the new courses
+                  // Apply current filters
                   let newFilteredCourses = [...result.courses];
-                  
-                  // Apply difficulty filter if selected
+
                   if (selectedDifficulty !== "all") {
                     newFilteredCourses = newFilteredCourses.filter(
                       course => course.difficulty === selectedDifficulty
                     );
                   }
                   
-                  // Apply platform filter if selected
                   if (selectedPlatform !== "all") {
                     const platformId = parseInt(selectedPlatform);
                     newFilteredCourses = newFilteredCourses.filter(
@@ -770,7 +713,6 @@ function DashboardPage() {
                     );
                   }
                   
-                  // Apply institution filter if selected
                   if (selectedInstitution !== "all") {
                     const institutionId = parseInt(selectedInstitution);
                     newFilteredCourses = newFilteredCourses.filter(
@@ -778,7 +720,6 @@ function DashboardPage() {
                     );
                   }
                   
-                  // Apply skill filter if selected
                   if (selectedSkill !== "all") {
                     const skillId = parseInt(selectedSkill);
                     newFilteredCourses = newFilteredCourses.filter(
@@ -786,10 +727,8 @@ function DashboardPage() {
                     );
                   }
                   
-                  // Add filtered new courses to current courses
                   setCourses(prev => [...prev, ...newFilteredCourses]);
                   
-                  // Show success toast/notification instead of alert
                   const displayCount = newFilteredCourses.length;
                   const totalCount = result.courses.length;
                   
@@ -826,5 +765,4 @@ function DashboardPage() {
   );
 }
 
-// Export the protected component
 export default withAuth(DashboardPage);

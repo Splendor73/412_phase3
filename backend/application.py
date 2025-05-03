@@ -7,10 +7,9 @@ from auth import auth_bp
 app = Flask(__name__)
 CORS(app)
 
-# Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 
-# Define a basic route to verify server is running
+# Health check route
 @app.route('/')
 def home():
     return jsonify({"message": "Flask server is running!"})
@@ -31,7 +30,7 @@ def test_db():
     except Exception as e:
         return jsonify({"status": "error", "message": f"Database connection failed: {str(e)}"})
 
-# API Endpoints for Courses
+# 
 @app.route('/api/courses', methods=['GET'])
 def get_courses():
     conn = None
@@ -39,7 +38,7 @@ def get_courses():
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Build the query with filters
+        # Build the query
         query = '''
             SELECT c.course_id, c.title, c.description, c.url,
                    c.rating, c.num_enrollments, c.difficulty, c.platform_id,
@@ -52,7 +51,7 @@ def get_courses():
         '''
         params = []
         
-        # Apply filters from query parameters
+        # Apply filters
         if request.args.get('difficulty'):
             query += ' AND c.difficulty = %s'
             params.append(request.args.get('difficulty'))
@@ -86,7 +85,7 @@ def get_courses():
         cur.execute(query, params)
         courses = cur.fetchall()
         
-        # --- Fetch Skills for the fetched courses --- 
+        # Fetch skills
         course_ids = [course[0] for course in courses]
         skills_map = {}
         if course_ids:
@@ -102,7 +101,6 @@ def get_courses():
                 if course_id not in skills_map:
                     skills_map[course_id] = []
                 skills_map[course_id].append({'skill_id': skill_id, 'name': skill_name})
-        # --- End Fetch Skills ---
         
         result = []
         for course in courses:
@@ -135,6 +133,7 @@ def get_courses():
         if conn:
             conn.close()
 
+# Get course details
 @app.route('/api/courses/<int:course_id>', methods=['GET'])
 def get_course(course_id):
     conn = None
@@ -142,7 +141,6 @@ def get_course(course_id):
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Get course details
         cur.execute(''' 
             SELECT c.course_id, c.title, c.description, c.url,
                    c.rating, c.num_enrollments, c.difficulty, c.platform_id,
@@ -204,6 +202,7 @@ def get_course(course_id):
         if conn:
             conn.close()
 
+# Get user bookmarks
 @app.route('/api/bookmarks', methods=['GET'])
 def get_user_bookmarks():
     """Get all bookmarked courses for the current user"""
@@ -227,7 +226,6 @@ def get_user_bookmarks():
         ''', (user_id,))
         bookmarks = cur.fetchall()
         
-        # Convert to list of dictionaries
         bookmarks_list = []
         for bookmark in bookmarks:
             bookmarks_list.append({
@@ -256,6 +254,7 @@ def get_user_bookmarks():
         cur.close()
         conn.close()
 
+# Add a course to user's bookmarks
 @app.route('/api/bookmarks', methods=['POST'])
 def add_bookmark():
     """Add a course to user's bookmarks"""
@@ -283,6 +282,7 @@ def add_bookmark():
         cur.close()
         conn.close()
 
+# Remove a course from user's bookmarks
 @app.route('/api/bookmarks', methods=['DELETE'])
 def remove_bookmark():
     """Remove a course from user's bookmarks"""
@@ -308,6 +308,7 @@ def remove_bookmark():
         cur.close()
         conn.close()
 
+# Get all platforms
 @app.route('/api/platforms', methods=['GET'])
 def get_platforms():
     """Get all available platforms"""
@@ -335,6 +336,7 @@ def get_platforms():
         if conn:
             conn.close()
             
+# Get all institutions
 @app.route('/api/institutions', methods=['GET'])
 def get_institutions():
     """Get all available institutions"""
@@ -361,6 +363,7 @@ def get_institutions():
         if conn:
             conn.close()
 
+# Get all skills
 @app.route('/api/skills', methods=['GET'])
 def get_skills():
     """Get all available skills"""
@@ -387,8 +390,7 @@ def get_skills():
         if conn:
             conn.close()
 
-# --- User Profile Endpoints ---
-
+# Get user profile
 @app.route('/api/users/<int:user_id>', methods=['GET'])
 def get_user_profile(user_id):
     conn = None
@@ -424,6 +426,7 @@ def get_user_profile(user_id):
         if conn:
             conn.close()
 
+# Update user profile
 @app.route('/api/users/<int:user_id>', methods=['PUT'])
 def update_user_profile(user_id):
     data = request.get_json()
@@ -435,29 +438,23 @@ def update_user_profile(user_id):
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Separate user table fields from student table fields
         user_set_clauses = []
         user_params = []
         student_set_clauses = []
         student_params = []
         
-        # Fields for user table
         user_fields = ['first_name', 'last_name', 'email', 'type']
-        # Fields for student table
         student_fields = ['major']
         
-        # Special handling for level which maps to skill_level in DB
         if 'level' in data:
             student_set_clauses.append("skill_level = %s")
             student_params.append(data['level'])
         
-        # Process user table fields
         for field in user_fields:
             if field in data:
                 user_set_clauses.append(f"{field} = %s")
                 user_params.append(data[field])
 
-        # Process student table fields (except level already handled)
         for field in student_fields:
             if field in data:
                 student_set_clauses.append(f"{field} = %s")
@@ -466,13 +463,13 @@ def update_user_profile(user_id):
         if not user_set_clauses and not student_set_clauses:
             return jsonify({"error": "No valid fields provided for update"}), 400
 
-        # Start a transaction since we need to update potentially two tables
+        # Start a transaction
         conn.autocommit = False
         updated_user = None
         
-        # Update user table if needed
+        # Update user table
         if user_set_clauses:
-            user_params.append(user_id)  # Add user_id for WHERE clause
+            user_params.append(user_id)
             user_query = f'''
                 UPDATE "user"
                 SET {', '.join(user_set_clauses)}
@@ -488,13 +485,13 @@ def update_user_profile(user_id):
         
         # Check if we need to update the student table
         if student_set_clauses:
-            # First check if student record exists
+            # Check if student record exists
             cur.execute('SELECT 1 FROM student WHERE user_id = %s', (user_id,))
             student_exists = cur.fetchone() is not None
             
             if student_exists:
-                # Update existing student record
-                student_params.append(user_id)  # Add user_id for WHERE clause
+                # Update existing student
+                student_params.append(user_id)
                 student_query = f'''
                     UPDATE student
                     SET {', '.join(student_set_clauses)}
@@ -503,7 +500,7 @@ def update_user_profile(user_id):
                 '''
                 cur.execute(student_query, tuple(student_params))
             else:
-                # Insert new student record if it doesn't exist
+                # Insert new student
                 all_fields = ['user_id']
                 all_values = [user_id]
                 
@@ -515,7 +512,7 @@ def update_user_profile(user_id):
                     all_fields.append('skill_level') 
                     all_values.append(data['level'])
                 
-                if len(all_fields) > 1:  # Only if we have fields beyond user_id
+                if len(all_fields) > 1:
                     student_query = f'''
                         INSERT INTO student ({', '.join(all_fields)})
                         VALUES ({', '.join(['%s' for _ in all_fields])})
@@ -523,7 +520,6 @@ def update_user_profile(user_id):
                     '''
                     cur.execute(student_query, tuple(all_values))
         
-        # If we only updated student table, we need to fetch user data separately
         if not updated_user:
             cur.execute('''
                 SELECT user_id, first_name, last_name, email, type
@@ -535,7 +531,7 @@ def update_user_profile(user_id):
                 conn.rollback()
                 return jsonify({"error": "User not found"}), 404
         
-        # Fetch the updated student data
+        # Fetch updated student
         cur.execute('''
             SELECT major, skill_level FROM student WHERE user_id = %s
         ''', (user_id,))
@@ -558,21 +554,18 @@ def update_user_profile(user_id):
     except Exception as e:
         if conn: conn.rollback()
         print(f"Error updating user {user_id}: {e}")
-        # Check for unique constraint violation (e.g., email already exists)
         if 'unique constraint' in str(e).lower() and 'email' in str(e).lower():
-             return jsonify({"error": "Email already in use by another account."}), 409 # Conflict
+             return jsonify({"error": "Email already in use by another account."}), 409
         return jsonify({"error": "Failed to update profile", "details": str(e)}), 500
     finally:
         if conn:
             conn.close()
 
-# --- End User Profile Endpoints ---
-
-# --- Add Scrape Courses API ---
+# Scrape more courses
 @app.route('/api/scrape-courses', methods=['GET'])
 def scrape_more_courses():
     try:
-        # Get query parameters
+        # Get query params
         query = request.args.get('query', '')
         max_courses = int(request.args.get('max_courses', '10'))
         min_new_courses = int(request.args.get('min_new_courses', '5'))
@@ -580,7 +573,6 @@ def scrape_more_courses():
         if not query:
             return jsonify({"error": "Query parameter is required"}), 400
             
-        # Import here to avoid circular imports
         from scraper import scrape_and_store
         
         # Run the scraper
@@ -593,7 +585,7 @@ def scrape_more_courses():
             
         print(f"Found {len(new_course_ids)} new courses")
         
-        # Fetch the newly added courses with full details to return to frontend
+        # Fetch added courses to send to frontend
         conn = get_db_connection()
         cur = conn.cursor()
         
@@ -612,7 +604,7 @@ def scrape_more_courses():
         cur.execute(query, new_course_ids)
         courses = cur.fetchall()
         
-        # Fetch skills for the new courses
+        # Fetch skills
         skills_map = {}
         if new_course_ids:
             skills_query = '''
@@ -629,7 +621,7 @@ def scrape_more_courses():
                     skills_map[course_id] = []
                 skills_map[course_id].append({'skill_id': skill_id, 'name': skill_name})
         
-        # Format the new courses just like in get_courses route
+        # Format courses
         result = []
         for course in courses:
             course_id = course[0]
@@ -666,12 +658,11 @@ def scrape_more_courses():
         return jsonify({"error": f"Failed to scrape courses: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    # Check if this is the initial startup (not a reload)
     if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
-        # Initialize database tables
+        # Initialize database
         init_db()
         
-        # Test database connection at startup
+        # Test database connection
         success, tables = test_connection()
     
     app.run(debug=True, port=5050)
