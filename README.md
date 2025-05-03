@@ -18,19 +18,53 @@ cd 412_phase3
 ```
 
 ## Step 2: Set Up the Database
-1. Start PostgreSQL and create a new database:
+1. Navigate into the [database_setup](./database_setup/) directory:
+```bash
+   cd database_setup
+```
+
+2. Start PostgreSQL and create a new database. Note down your PostgreSQL username and password.
 ```bash
 # Connect to PostgreSQL
 psql -U postgres
 
 # Create the database
-CREATE DATABASE phase3_db;
+CREATE DATABASE phase3_db_group19;
 
-# Exit PostgreSQL
-\q
+# Connect to the database
+\c phase3_db_group19;
 ```
 
-2. Note down your PostgreSQL username and password for the next step.
+3. Run the SQL code from [setup.sql](./database_setup/setup.sql) to create the tables:
+
+```bash
+ \i setup.sql;
+```
+
+4. Run the following commands in order to import the DB dump from [/database_setup/dump](./database_setup/dump/):
+```bash
+\copy "user"(user_id, first_name, last_name, email, password, type, date_created) FROM './dump/user.csv' DELIMITER '|' CSV HEADER;
+
+\copy student(user_id, major, skill_level) FROM './dump/student.csv' DELIMITER '|' CSV HEADER;
+
+\copy asu_admin(user_id, department, job_title) FROM './dump/asu_admin.csv' DELIMITER '|' CSV HEADER;
+
+\copy platform(platform_id, name, website) FROM './dump/platform.csv' DELIMITER '|' CSV HEADER;
+
+\copy institution(institution_id, name) FROM './dump/institution.csv' DELIMITER '|' CSV HEADER;
+
+\copy course(course_id, title, description, difficulty, platform_id, institution_id, rating, url, num_enrollments) FROM './dump/course.csv' DELIMITER '|' CSV HEADER;
+
+\copy course_prerequisite(course_id, prerequisite_course_id) FROM './dump/course_prerequisite.csv' DELIMITER '|' CSV HEADER;
+
+\copy bookmark(user_id, course_id, date_created) FROM './dump/bookmark.csv' DELIMITER '|' CSV HEADER;
+
+\copy skill(skill_id, name) FROM './dump/skill.csv' DELIMITER '|' CSV HEADER;
+
+\copy user_skills(user_id, skill_id) FROM './dump/user_skills.csv' DELIMITER '|' CSV HEADER;
+
+\copy course_skills(course_id, skill_id) FROM './dump/course_skills.csv' DELIMITER '|' CSV HEADER;
+```
 
 ## Step 3: Configure the Backend
 1. Navigate to the backend directory:
@@ -59,11 +93,11 @@ pip install -r requirements.txt
    - Update the DB_CONFIG dictionary with your PostgreSQL credentials:
 ```python
 DB_CONFIG = {
-    'dbname': 'phase3_db',     # Database name created in Step 2
-    'user': 'your_username',   # Your PostgreSQL username
-    'password': 'your_password', # Your PostgreSQL password
+    'dbname': 'phase3_db_group19',  # Database name created in Step 2
+    'user': 'YOUR_USERNAME',        # Your PostgreSQL username
+    'password': 'YOUR_PASSWORD',    # Your PostgreSQL password
     'host': 'localhost',
-    'port': '5432'             # Default PostgreSQL port
+    'port': '5432'
 }
 ```
 
@@ -92,7 +126,7 @@ python application.py
 
 You should see output similar to:
 ```
-✅ Successfully connected to the phase3_db database!
+✅ Successfully connected to the phase3_db_group19 database!
  * Serving Flask app 'application'
  * Debug mode: on
  * Running on http://127.0.0.1:5050
@@ -229,6 +263,21 @@ A platform for ASU students to discover and bookmark online courses based on the
 │   ├── db_config.py       # Database configuration
 │   ├── scraper.py         # Web scraping functionality
 │   └── requirements.txt   # Python dependencies
+|
+├── database_setup/        # Database setup files
+│   ├── setup.sql          # SQL script to create tables
+│   └── dump/              # Database dump files
+│       ├── asu_admin.csv            # ASU Admins data
+│       ├── bookmark.csv             # Bookmarks data
+│       ├── course_prerequisite.csv  # Course prerequisites data
+│       ├── course_skills.csv        # Course skills data
+│       ├── course.csv               # Courses data
+│       ├── institutuon.csv          # Institutions data
+│       ├── platform.csv             # Platforms data
+│       ├── skill.csv                # Skills data
+│       ├── student.csv              # Students data
+│       ├── user_skills.csv          # User skills data
+│       ├── user.csv                 # Users data
 │
 ├── chromedriver-mac-arm64/ # ChromeDriver for Mac Apple Silicon
 │
@@ -240,96 +289,3 @@ A platform for ASU students to discover and bookmark online courses based on the
     │   └── components/    # Reusable UI components
     └── package.json       # Node.js dependencies
 ```
-
-## Getting Started After Cloning
-
-Follow these steps to get the project running on your local machine after cloning from GitHub:
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/Splendor73/412_phase3.git
-cd 412_phase3
-```
-
-### 2. Database Setup
-
-1. Install PostgreSQL if you don't have it already
-2. Create a new database:
-   ```bash
-   psql -U postgres
-   CREATE DATABASE phase3_db;
-   \q
-   ```
-
-### 3. Backend Setup
-
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-
-2. Create and activate a virtual environment:
-   ```bash
-   # On macOS/Linux
-   python -m venv venv
-   source venv/bin/activate
-   
-   # On Windows
-   python -m venv venv
-   venv\Scripts\activate
-   ```
-
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Update database configuration:
-   - Open `db_config.py`
-   - Modify the DB_CONFIG dictionary with your PostgreSQL credentials:
-   ```python
-   DB_CONFIG = {
-       'dbname': 'phase3_db',
-       'user': 'your_postgres_username',
-       'password': 'your_postgres_password',
-       'host': 'localhost',
-       'port': '5432'
-   }
-   ```
-
-5. ChromeDriver Setup (for web scraping):
-   - For Mac with Apple Silicon (M1/M2/M3):
-     ```bash
-     chmod +x ../chromedriver-mac-arm64/chromedriver
-     ```
-   - For other systems, the WebDriver Manager will handle this automatically
-
-6. Install Chrome browser if not already installed:
-   - Download from https://www.google.com/chrome/
-   - Make sure it's up to date (the scraper works best with the latest version)
-
-7. Start the Flask server:
-   ```bash
-   python application.py
-   ```
-   - The first run will initialize the database tables
-   - The server will run on http://localhost:5050
-
-### 4. Frontend Setup
-
-1. Open a new terminal window/tab
-2. Navigate to the frontend directory:
-   ```bash
-   cd ../frontend
-   ```
-
-3. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```

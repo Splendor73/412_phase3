@@ -3,9 +3,9 @@ from psycopg2 import Error
 
 # Database configuration
 DB_CONFIG = {
-    'dbname': 'phase3_db',
-    'user': 'yashupatel',
-    'password': '1973',
+    'dbname': 'phase3_db_group19',
+    'user': 'postgres',
+    'password': 'admin',
     'host': 'localhost',
     'port': '5432'
 }
@@ -105,7 +105,7 @@ def init_db():
                         REFERENCES public.institution (institution_id) MATCH SIMPLE
                         ON UPDATE NO ACTION
                         ON DELETE SET NULL
-                )
+                );
 
                 -- Create Course Prerequisites table
                 CREATE TABLE IF NOT EXISTS course_prerequisite (

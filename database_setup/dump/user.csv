@@ -1,0 +1,11 @@
+user_id|first_name|last_name|email|password|type|date_created
+1|John|Doe|john.doe@example.com|hashedpass1|student|2025-03-23 10:00:00
+2|Jane|Smith|jane.smith@example.com|hashedpass2|asu_admin|2025-03-23 10:05:00
+3|Alice|Brown|alice.brown@example.com|hashedpass3|student|2025-03-23 10:10:00
+4|Bob|Lee|bob.lee@example.com|hashedpass4|student|2025-03-23 10:15:00
+5|Emma|Chen|emma.chen@example.com|hashedpass5|asu_admin|2025-03-23 10:20:00
+6|yashu|Patel|yy@asu.edu|3e0b90c45ca9b82af267439555b6aba3:5c0d352784c3089941166d97f3dbf5c4eddb4dfff01c951ff440d86ab5d773fb|student|2025-04-30 20:48:28.536441
+7|Yashu|Patel|ypatel@asu.com|7c4c98f186b8c45141fb5434c7ae419b:f9e568fa4865ab17c1632d76090a2cf787617676cddd4ebe1d3a441d3b25d8be|student|2025-04-30 20:51:35.221191
+8|Sam|P|sam123@asu.edu|510981e521037b7b432cb10994cbcd28:8a65450b908d69efee93f9e5ace779654df63d686e25aa63428dbe53a515e557|student|2025-05-02 15:03:48.803628
+9|Grader|ASU|grader@test.com|a900fdf8bd6b71b3041bbd43ba248a11:268e8b426c7c867f1c7e821ab0ab7ee51497d34081704fce9f3f508c9a914e9f|student|2025-05-02 19:24:39.465385
+10|Test|User|test10@email.com|0927b3500f5ea88864dd5df7ac0f207f:fbb0ee419e0878cb74038b9ecf1b32c43f0d79da541b2fcb1e700dd1199a3da1|student|2025-05-02 19:50:36.344056

@@ -1,0 +1,263 @@
+skill_id|name
+1|AI
+2|Data Science
+3|Web Development
+4|Machine Learning
+5|Software Development
+6|Python
+7|AWS
+8|Java
+9|Risk Management
+10|Responsible Generative AI
+11|Generative AI
+12|Future of Work
+13|Generative AI Governance
+14|Leadership and Management
+15|Generative AI Strategy
+16|Strategy
+17|Generative AI Labor
+18|Agentic AI Architecture
+19|Prompt Engineering
+20|AI Agents in Python
+21|Agentic AI
+22|AI Automation
+23|AI Agents
+24|AI Agent Architecture
+25|Python AI Agents
+26|prompt patterns
+27|Large Language Models
+28|Data Preprocessing
+29|Real-World Problem-Solving
+30|Azure Deployment
+31|Model Optimization
+32|Ethical AI Practices
+33|Supervised Learning
+34|Model Evaluation and Comparison
+35|Excel
+36|Digital Storytelling
+37|Excel Visualizations
+38|Data Analysis
+39|Excel Formulas
+40|Data Visualization
+41|Excel VBA
+42|ChatGPT
+43|Trustworthy AI
+44|Power Query
+45|Generative AI in Power BI
+46|power bi
+47|Microsoft Excel
+48|SQL
+49|Design Dashboards
+50|Design Reports
+51|Report Building
+52|Dashboard Creation
+53|Data-driven decisions
+54|Databases
+55|Python Programming
+56|Data Management
+57|Applied Statistics and Probability
+58|Spreadsheets
+59|Python Programming for Data Analysis
+60|Descriptive Statistics
+61|Time Series Analysis And Forecasting
+62|Data Storytelling
+63|Automation
+64|Predictive Analytics
+65|Data Optimization
+66|Predictive Analysis
+67|Storytelling
+68|Dashboard Design
+69|Report Generation
+70|User Experience (UX)
+71|Finance Fundamentals
+72|Financial Planning and Wealth Management
+73|Accounting Fundamentals
+74|Environmental Social And Corporate Governance (ESG)
+75|Finance
+76|Business Analysis
+77|Accounting
+78|General Accounting
+79|Mathematical Theory & Analysis
+80|General Statistics
+81|Probability & Statistics
+82|Regression
+83|Strategy and Operations
+84|Investment Management
+85|Decision Making
+86|Critical Thinking
+87|Mathematics
+88|Problem Solving
+89|Planning
+90|Budget Management
+91|Business Psychology
+92|Entrepreneurship
+93|Human Learning
+94|Business Process Automation
+95|Artificial Intelligence
+96|OpenAI
+97|Artificial Intelligence and Machine Learning (AI/ML)
+98|Innovation
+99|Expense Reports
+100|Solution Architecture
+101|Productivity Software
+102|Prompt engineering
+103|Marketing
+104|Data analytics
+105|Communication
+106|chain of thought prompting
+107|prompt engineering
+108|Team Coordination
+109|Project Mangement
+110|ChatGPt
+111|Project Management
+112|Team Collaboration
+113|Problem Formulation for Generative AI
+114|Personalized Education with AI
+115|AI in the Classroom
+116|AI and Critical Thinking
+117|How to Teach AI
+118|Trustworthy Generative AI
+119|Activity Brainstorming
+120|Lesson Planning
+121|Quiz Generation
+122|Computer Vision for Educational Activities
+123|Software Testing
+124|User Experience
+125|Figma (Design Software)
+126|Wireframe
+127|Prototype
+128|HTML and CSS
+129|Algorithms
+130|User Experience Design
+131|Wireframing
+132|User Centered Design
+133|User Flows
+134|Storyboarding
+135|Mockups
+136|User Interface and User Experience (UI/UX) Design
+137|Prototyping
+138|CSS
+139|C# Fundamentals
+140|HTML
+141|Front-End Development
+142|Blazor
+143|Web Application Security
+144|JavaScript
+145|Microsoft Copilot
+146|Version Control
+147|Logical Thinking
+148|User Interface (UI)
+149|BlockChain
+150|FinTech
+151|Cyberattacks
+152|Security Engineering
+153|Capital Structure Analysis
+154|Cash Flow Management
+155|Financial Metrics Application
+156|Strategic Decision-Making
+157|Investment Evaluation
+158|Operational Efficiency
+159|People Analysis
+160|Videography
+161|scripting
+162|visual storytelling
+163|Graphics
+164|Editing
+165|Framing
+166|Video Production
+167|video
+168|Video Post-Production
+169|Video Editing
+170|Linear Editing
+171|video pre-production
+172|Computer Graphic Techniques
+173|Visual Design
+174|Content Production
+175|Social Media
+176|Content Strategy
+177|AI Responsibly
+178|Multimedia
+179|Digital Media
+180|Podcasting
+181|Short-form video
+182|Adobe Firefly
+183|Graphic Design
+184|Computer Vision
+185|Probability Distribution
+186|Mac OS
+187|Post-Production
+188|Media Production
+189|Data Import/Export
+190|Timelines
+191|Virtual Reality
+192|Color Theory
+193|File Management
+194|Video Game Development
+195|Audio Development
+196|Blueprint Scripting
+197|Game Design,
+198|Level Design
+199|Visual Development
+200|User Interface
+201|Unreal Engine
+202|Animation
+203|Video Game Design
+204|Market Research
+205|Microsoft Visio
+206|Stakeholder Management
+207|Pivot Tables
+208|Formulas and Functions
+209|Preparing Data
+210|Chatbot
+211|Business Process
+212|Power BI
+213|Sales
+214|Advertising
+215|Writing
+216|Content development and optimization
+217|A/B testing
+218|Typography
+219|Visual Storytelling
+220|Applied Machine Learning
+221|Machine Learning Algorithms
+222|Deep Learning
+223|Google Cloud Platform
+224|Cloud Computing
+225|Artificial Neural Networks
+226|Python (Programming Language)
+227|Scripting
+228|API Interaction
+229|Productivity
+230|API Development
+231|Flask Framework
+232|Collaboration
+233|Network Model
+234|Computer Programming
+235|Programming Principles
+236|Big Data
+237|Software Engineering
+238|Computer Architecture
+239|Computer Programming Tools
+240|DevOps
+241|Software Architecture
+242|Network Security
+243|Optimización de motores de búsqueda (SEO)
+244|Publicidad gráfica
+245|Marketing por correo electrónico
+246|Comercio electrónico
+247|Subastas en redes sociales
+248|Analítica de redes sociales
+249|Mobile Development
+250|Operating Systems
+251|Data Structures
+252|Interactive Design
+253|iOS app development
+254|SwiftUI iOS 17
+255|Swift programming guide
+256|Cross-platform iOS macOS
+257|Xcode 15 programming
+258|Mobile App Design
+259|UIKit
+260|multiplatform iOS apps
+261|MapKit integration
+262|iCloud storage
