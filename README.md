@@ -102,9 +102,10 @@ DB_CONFIG = {
 ```
 
 5. Set up ChromeDriver for web scraping:
-   - For Mac with Apple Silicon (M1/M2/M3):
+   - For Mac with Apple Silicon (M1/M2/M3) from the root of the repository:
    ```bash
    chmod +x ../chromedriver-mac-arm64/chromedriver
+   xattr -d com.apple.quarantine './chromedriver-mac-arm64/chromedriver'
    ```
    - For Windows/Linux or Intel Mac:
      - The WebDriver Manager will handle this automatically
