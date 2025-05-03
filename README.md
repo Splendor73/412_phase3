@@ -69,7 +69,7 @@ CREATE DATABASE phase3_db_group19;
 ## Step 3: Configure the Backend
 1. Navigate to the backend directory:
 ```bash
-cd backend
+cd ../backend
 ```
 
 2. Create and activate a Python virtual environment:
